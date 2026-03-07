@@ -5,10 +5,9 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 /* ===========================
-   UPSTOX API
+   UPSTOX TOKEN
 =========================== */
 
-const API_KEY = "e43e54bc-3227-407c-a01c-fb558b4813cd";
 const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIxNTQ3NDAiLCJqdGkiOiI2OWFjMTRkMWZlM2ExODdjOTc0OTBkNzAiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlhdCI6MTc3Mjg4NTIwMSwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxNzcyOTIwODAwfQ.fi4JD-IaSZTiy2cIgAaVMpgqjDKigigFQ_d920_d7rU";
 
 /* ===========================
@@ -18,11 +17,31 @@ const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNT
 let marketCache = null;
 let optionCache = null;
 
-let lastMarketUpdate = 0;
-let lastOptionUpdate = 0;
+let marketTime = 0;
+let optionTime = 0;
 
 /* ===========================
-   FETCH MARKET DATA
+   AUTO EXPIRY (NEXT THURSDAY)
+=========================== */
+
+function getNextExpiry() {
+
+  const now = new Date();
+
+  const day = now.getDay();
+
+  const diff = (4 + 7 - day) % 7 || 7;
+
+  const expiry = new Date(now);
+
+  expiry.setDate(now.getDate() + diff);
+
+  return expiry.toISOString().split("T")[0];
+
+}
+
+/* ===========================
+   MARKET DATA
 =========================== */
 
 async function fetchMarketData() {
@@ -48,8 +67,6 @@ async function fetchMarketData() {
     const nifty = data["NSE_INDEX|Nifty 50"].last_price;
     const banknifty = data["NSE_INDEX|Nifty Bank"].last_price;
 
-    /* Sensex Yahoo backup */
-
     const sensexRes = await axios.get(
       "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EBSESN"
     );
@@ -64,7 +81,7 @@ async function fetchMarketData() {
       source: "upstox"
     };
 
-    lastMarketUpdate = Date.now();
+    marketTime = Date.now();
 
     console.log("Market Updated");
 
@@ -87,11 +104,11 @@ async function fetchMarketData() {
         source: "yahoo"
       };
 
-      lastMarketUpdate = Date.now();
+      marketTime = Date.now();
 
     } catch (error) {
 
-      console.log("Yahoo also failed");
+      console.log("Yahoo failed");
 
     }
 
@@ -100,18 +117,21 @@ async function fetchMarketData() {
 }
 
 /* ===========================
-   FETCH OPTION CHAIN
+   OPTION CHAIN
 =========================== */
 
 async function fetchOptionChain() {
 
   try {
 
+    const expiry = getNextExpiry();
+
     const res = await axios.get(
       "https://api.upstox.com/v2/option/chain",
       {
         params: {
-          instrument_key: "NSE_INDEX|Nifty 50"
+          instrument_key: "NSE_INDEX|NIFTY",
+          expiry_date: expiry
         },
         headers: {
           Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -137,16 +157,25 @@ async function fetchOptionChain() {
         const diff = Math.abs(row.strike_price - price);
 
         if (diff < closest) {
+
           closest = diff;
+
           atm = row.strike_price;
+
         }
 
         strikes.push({
+
           strike: row.strike_price,
+
           ce: row.call_options?.market_data?.ltp || 0,
+
           pe: row.put_options?.market_data?.ltp || 0,
+
           ce_oi: row.call_options?.market_data?.oi || 0,
+
           pe_oi: row.put_options?.market_data?.oi || 0
+
         });
 
       });
@@ -154,11 +183,16 @@ async function fetchOptionChain() {
     }
 
     optionCache = {
+
+      expiry,
+
       atm,
+
       strikes
+
     };
 
-    lastOptionUpdate = Date.now();
+    optionTime = Date.now();
 
     console.log("Option Chain Updated");
 
@@ -183,8 +217,10 @@ setInterval(fetchOptionChain, 10000);
 
 app.get("/market", async (req, res) => {
 
-  if (!marketCache || Date.now() - lastMarketUpdate > 10000) {
+  if (!marketCache || Date.now() - marketTime > 10000) {
+
     await fetchMarketData();
+
   }
 
   res.json(marketCache);
@@ -193,8 +229,10 @@ app.get("/market", async (req, res) => {
 
 app.get("/option-chain", async (req, res) => {
 
-  if (!optionCache || Date.now() - lastOptionUpdate > 10000) {
+  if (!optionCache || Date.now() - optionTime > 10000) {
+
     await fetchOptionChain();
+
   }
 
   res.json(optionCache);
@@ -207,6 +245,6 @@ app.get("/option-chain", async (req, res) => {
 
 app.listen(PORT, () => {
 
-  console.log("BullBear Market Server Running on port", PORT);
+  console.log("BullBear Market Server Running", PORT);
 
 });
