@@ -66,7 +66,7 @@ async function fetchOptionChain() {
   try {
 
     const res = await api.get(
-      "https://query2.finance.yahoo.com/v7/finance/options/%5ENSEI"
+     "https://api.jsonbin.io/v3/b/65f2a9a51f5677401f2b1a9c/latest"
     );
 
     const optionData = res.data.optionChain.result[0];
@@ -135,3 +135,4 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 
 });
+
