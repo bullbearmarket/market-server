@@ -39,4 +39,18 @@ async function fetchMarket() {
 
 }
 
+
 setInterval(fetchMarket, 5000);
+
+const express = require("express");
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Market Server Running");
+});
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
