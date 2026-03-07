@@ -70,7 +70,9 @@ async function fetchOptionChain() {
 });
 
 await axiosInstance.get("https://www.nseindia.com");
-
+    
+await new Promise(resolve => setTimeout(resolve, 1500));
+    
 const response = await axiosInstance.get(
   "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
 );
@@ -143,6 +145,7 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
 
 
 
