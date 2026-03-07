@@ -55,9 +55,9 @@ async function fetchOptionChain() {
     /* warmup request for cookie */
     await api.get("https://www.nseindia.com");
 
-    const res = await api.get(
-      "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
-    );
+  const res = await api.get(
+"https://api.allorigins.win/raw?url=https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
+);
 
     const records = res.data.records.data;
     const spot = res.data.records.underlyingValue;
@@ -105,3 +105,4 @@ setInterval(fetchOptionChain, 60000);
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
