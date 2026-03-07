@@ -6,6 +6,7 @@ const strikeEngine = require("./engines/strikeEngine");
 const marketEngine = require("./engines/marketEngine");
 const optionEngine = require("./engines/optionEngine");
 const masterEngine = require("./engines/masterEngine");
+const analyzerEngine = require("./engines/analyzerEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -142,6 +143,16 @@ app.get("/option-chain/:symbol",(req,res)=>{
 
 });
 
+app.get("/analyze/:symbol",(req,res)=>{
+
+const symbol = req.params.symbol;
+
+const data = analyzerEngine.analyze(symbol);
+
+res.json(data);
+
+});
+
 /* ---------- SERVER ---------- */
 
 async function startEngine(){
@@ -163,6 +174,7 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
 
