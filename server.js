@@ -137,7 +137,10 @@ app.get("/option-chain", (req, res) => {
 async function startEngine(){
 
 await instrumentEngine.downloadInstrumentFile();
-await instrumentEngine.parseInstrumentFile();
+
+const instruments = await instrumentEngine.parseInstrumentFile();
+
+expiryEngine.detectExpiries(instruments);
 
 }
 
@@ -146,5 +149,6 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
