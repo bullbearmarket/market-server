@@ -1,98 +1,74 @@
-const express = require("express");
-const axios = require("axios");
+import express from "express";
+import axios from "axios";
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-const api = axios.create({
-  timeout: 15000
-});
+/* ===== Worker URL (तुम्हारा Cloudflare worker) ===== */
+const OPTION_CHAIN_API =
+  "https://lingering-math-11eb.moneymaker-earnmoney.workers.dev";
 
-/* MARKET DATA (Yahoo) */
+/* ===== Market spot dummy endpoint example ===== */
+let market = {
+  nifty: 0,
+};
 
-async function fetchMarket() {
-  try {
-
-    const res = await api.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"
-    );
-
-    const price = res.data.chart.result[0].meta.regularMarketPrice;
-
-    console.log("NIFTY:", price);
-
-  } catch (err) {
-
-    console.log("Market Error:", err.message);
-
-  }
-}
-
-
-/* OPTION CHAIN (UPSTOX) */
-
+/* ===== OPTION CHAIN FETCH ===== */
 async function fetchOptionChain() {
-
   try {
+    const res = await axios.get(OPTION_CHAIN_API);
 
-const res = await axios.get(
-"https://lingering-math-11eb.moneymaker-earnmoney.workers.dev"
-);
+    const records = res.data.records.data;
+    const spot = res.data.records.underlyingValue;
 
-   const data = res.data.data;
+    market.nifty = spot;
 
-const spot = data.spot;
+    const atm = Math.round(spot / 50) * 50;
 
-const atm = Math.round(spot / 50) * 50;
+    let strikes = {};
 
-let strikes = {};
+    records.forEach((item) => {
+      const strike = item.strikePrice;
 
-data.strikes.forEach(item => {
+      if (Math.abs(strike - atm) <= 500) {
+        strikes[strike] = {
+          CE_LTP: item.CE?.lastPrice || 0,
+          PE_LTP: item.PE?.lastPrice || 0,
+          CE_OI: item.CE?.openInterest || 0,
+          PE_OI: item.PE?.openInterest || 0,
+          CE_CHANGE_OI: item.CE?.changeinOpenInterest || 0,
+          PE_CHANGE_OI: item.PE?.changeinOpenInterest || 0,
+        };
+      }
+    });
 
-  const strike = item.strike;
+    console.log("Option Chain Updated | ATM:", atm);
 
-  if (Math.abs(strike - atm) <= 500) {
-
-    strikes[strike] = {
-      CE: item.ce_ltp,
-      PE: item.pe_ltp,
-      CE_OI: item.ce_oi,
-      PE_OI: item.pe_oi
+    return {
+      spot,
+      atm,
+      strikes,
     };
-
-  }
-
-});
-
-await db.ref("optionchain/nifty").set({
-  spot: spot,
-  atm: atm,
-  strikes: strikes,
-  time: Date.now()
-});
-
-console.log("Option Chain Updated | ATM:", atm);
-
   } catch (err) {
-
     console.log("Option Chain Error:", err.message);
-
   }
-
 }
 
-
-/* INTERVAL */
-
-setInterval(fetchMarket, 20000);
-setInterval(fetchOptionChain, 60000);
-
-
-/* SERVER */
-
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+/* ===== API endpoint ===== */
+app.get("/option-chain", async (req, res) => {
+  const data = await fetchOptionChain();
+  res.json(data);
 });
 
+/* ===== health endpoint ===== */
+app.get("/", (req, res) => {
+  res.send("Server Running");
+});
 
+/* ===== start server ===== */
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
+/* ===== refresh option chain ===== */
+setInterval(fetchOptionChain, 20000);
