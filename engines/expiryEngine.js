@@ -8,50 +8,48 @@ let expiries = {
 
 function detectExpiries(instruments){
 
+  if(!instruments){
+    console.log("No instruments received");
+    return;
+  }
+
+  if(!Array.isArray(instruments)){
+    console.log("Instrument data is not array");
+    return;
+  }
+
   instruments.forEach((item)=>{
+
+    if(!item) return;
 
     if(item.segment !== "NFO-OPT") return;
 
     if(item.name === "NIFTY"){
 
-      if(!expiries.NIFTY.includes(item.expiry))
+      if(!expiries.NIFTY.includes(item.expiry)){
         expiries.NIFTY.push(item.expiry);
+      }
 
     }
 
     if(item.name === "BANKNIFTY"){
 
-      if(!expiries.BANKNIFTY.includes(item.expiry))
+      if(!expiries.BANKNIFTY.includes(item.expiry)){
         expiries.BANKNIFTY.push(item.expiry);
+      }
 
     }
 
   });
 
-  expiries.NIFTY.sort();
-  expiries.BANKNIFTY.sort();
-
+  console.log("Expiry detection completed");
 }
 
-function getNearestExpiry(symbol){
-
-  const today = new Date();
-
-  let list = expiries[symbol];
-
-  for(let e of list){
-
-    let d = new Date(e);
-
-    if(d >= today) return e;
-
-  }
-
-  return null;
-
+function getExpiries(){
+  return expiries;
 }
 
 module.exports = {
   detectExpiries,
-  getNearestExpiry
+  getExpiries
 };
