@@ -29,7 +29,6 @@ const api = axios.create({
 /* MARKET DATA */
 
 async function fetchMarket() {
-
   try {
 
     const [nifty, banknifty, sensex] = await Promise.all([
@@ -39,12 +38,10 @@ async function fetchMarket() {
     ]);
 
     const data = {
-
       nifty: nifty.data.chart.result[0].meta.regularMarketPrice,
       banknifty: banknifty.data.chart.result[0].meta.regularMarketPrice,
       sensex: sensex.data.chart.result[0].meta.regularMarketPrice,
       time: Date.now()
-
     };
 
     await db.ref("market").set(data);
@@ -52,22 +49,21 @@ async function fetchMarket() {
     console.log("Market Updated:", data);
 
   } catch (err) {
-
     console.log("Market Error:", err.message);
-
   }
-
 }
 
-/* OPTION CHAIN */
+/* OPTION CHAIN (NSE via proxy) */
 
 async function fetchOptionChain() {
 
   try {
 
-   const res = await api.get(
-"https://cdn.jsdelivr.net/gh/VarunS2002/nse-data/option-chain/nifty.json"
-);
+    const proxyURL =
+      "https://api.allorigins.win/raw?url=" +
+      encodeURIComponent("https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY");
+
+    const res = await api.get(proxyURL);
 
     const records = res.data.records.data;
     const spot = res.data.records.underlyingValue;
@@ -96,12 +92,10 @@ async function fetchOptionChain() {
     });
 
     await db.ref("optionchain/nifty").set({
-
       spot: spot,
       atm: atm,
       strikes: strikes,
       time: Date.now()
-
     });
 
     console.log("Option Chain Updated | ATM:", atm);
@@ -114,12 +108,10 @@ async function fetchOptionChain() {
 
 }
 
-/* SERVER ROUTE */
+/* ROUTE */
 
 app.get("/", (req, res) => {
-
   res.send("BullBear Market Server Running");
-
 });
 
 /* UPDATE INTERVAL */
@@ -127,11 +119,8 @@ app.get("/", (req, res) => {
 setInterval(fetchMarket, 20000);
 setInterval(fetchOptionChain, 60000);
 
-/* START SERVER */
+/* SERVER */
 
 app.listen(PORT, () => {
-
   console.log("Server running on port", PORT);
-
 });
-
