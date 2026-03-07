@@ -29,6 +29,7 @@ const api = axios.create({
 /* MARKET DATA */
 
 async function fetchMarket() {
+
   try {
 
     const [nifty, banknifty, sensex] = await Promise.all([
@@ -38,10 +39,12 @@ async function fetchMarket() {
     ]);
 
     const data = {
+
       nifty: nifty.data.chart.result[0].meta.regularMarketPrice,
       banknifty: banknifty.data.chart.result[0].meta.regularMarketPrice,
       sensex: sensex.data.chart.result[0].meta.regularMarketPrice,
       time: Date.now()
+
     };
 
     await db.ref("market").set(data);
@@ -49,39 +52,43 @@ async function fetchMarket() {
     console.log("Market Updated:", data);
 
   } catch (err) {
+
     console.log("Market Error:", err.message);
+
   }
+
 }
 
-/* OPTION CHAIN (NSE via proxy) */
+/* OPTION CHAIN */
 
 async function fetchOptionChain() {
 
   try {
 
-   const res = await api.get(
-"https://query2.finance.yahoo.com/v7/finance/options/%5ENSEI"
-);
+    const res = await api.get(
+      "https://query2.finance.yahoo.com/v7/finance/options/%5ENSEI"
+    );
 
-    const records = res.data.optionChain.result[0].options[0].calls;
-const spot = res.data.optionChain.result[0].quote.regularMarketPrice;
-    
+    const optionData = res.data.optionChain.result[0];
+
+    const spot = optionData.quote.regularMarketPrice;
+
+    const calls = optionData.options[0].calls;
+
     const atm = Math.round(spot / 50) * 50;
 
     let strikes = {};
 
-    records.forEach(item => {
+    calls.forEach(item => {
 
-      const strike = item.strikePrice;
+      const strike = item.strike;
 
       if (Math.abs(strike - atm) <= 500) {
 
         strikes[strike] = {
 
-          CE: item.CE ? item.CE.lastPrice : null,
-          PE: item.PE ? item.PE.lastPrice : null,
-          CE_OI: item.CE ? item.CE.openInterest : null,
-          PE_OI: item.PE ? item.PE.openInterest : null
+          CE: item.lastPrice || null,
+          CE_OI: item.openInterest || null
 
         };
 
@@ -90,10 +97,12 @@ const spot = res.data.optionChain.result[0].quote.regularMarketPrice;
     });
 
     await db.ref("optionchain/nifty").set({
+
       spot: spot,
       atm: atm,
       strikes: strikes,
       time: Date.now()
+
     });
 
     console.log("Option Chain Updated | ATM:", atm);
@@ -109,7 +118,9 @@ const spot = res.data.optionChain.result[0].quote.regularMarketPrice;
 /* ROUTE */
 
 app.get("/", (req, res) => {
+
   res.send("BullBear Market Server Running");
+
 });
 
 /* UPDATE INTERVAL */
@@ -117,9 +128,10 @@ app.get("/", (req, res) => {
 setInterval(fetchMarket, 20000);
 setInterval(fetchOptionChain, 60000);
 
-/* SERVER */
+/* START SERVER */
 
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
-});
 
+  console.log("Server running on port", PORT);
+
+});
