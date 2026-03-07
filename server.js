@@ -7,6 +7,7 @@ const marketEngine = require("./engines/marketEngine");
 const optionEngine = require("./engines/optionEngine");
 const masterEngine = require("./engines/masterEngine");
 const analyzerEngine = require("./engines/analyzerEngine");
+const signalEngine = require("./engines/signalEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -153,6 +154,16 @@ res.json(data);
 
 });
 
+app.get("/signal/:symbol",(req,res)=>{
+
+const symbol = req.params.symbol;
+
+const data = signalEngine.generateSignal(symbol);
+
+res.json(data);
+
+});
+
 /* ---------- SERVER ---------- */
 
 async function startEngine(){
@@ -174,6 +185,7 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
 
