@@ -4,16 +4,45 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* CLOUDLFARE WORKER API */
+/* ===== APIs ===== */
+
 const OPTION_CHAIN_API =
   "https://lingering-math-11eb.moneymaker-earnmoney.workers.dev";
 
-/* MARKET DATA */
+const YAHOO_API =
+  "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN";
+
+/* ===== MARKET CACHE ===== */
+
 let market = {
-  nifty: 0
+  nifty: 0,
+  banknifty: 0,
+  sensex: 0,
+  optionChain: {},
+  atm: 0
 };
 
-/* OPTION CHAIN FETCH */
+/* ===== MARKET DATA (Yahoo) ===== */
+
+async function fetchMarket() {
+  try {
+    const res = await axios.get(YAHOO_API);
+
+    const data = res.data.quoteResponse.result;
+
+    market.nifty = data[0].regularMarketPrice;
+    market.banknifty = data[1].regularMarketPrice;
+    market.sensex = data[2].regularMarketPrice;
+
+    console.log("Market Updated:", market);
+
+  } catch (err) {
+    console.log("Market Error:", err.message);
+  }
+}
+
+/* ===== OPTION CHAIN ===== */
+
 async function fetchOptionChain() {
   try {
 
@@ -21,8 +50,6 @@ async function fetchOptionChain() {
 
     const records = res.data.records.data;
     const spot = res.data.records.underlyingValue;
-
-    market.nifty = spot;
 
     const atm = Math.round(spot / 50) * 50;
 
@@ -35,10 +62,13 @@ async function fetchOptionChain() {
       if (Math.abs(strike - atm) <= 500) {
 
         strikes[strike] = {
+
           CE_LTP: item.CE?.lastPrice || 0,
           PE_LTP: item.PE?.lastPrice || 0,
+
           CE_OI: item.CE?.openInterest || 0,
           PE_OI: item.PE?.openInterest || 0,
+
           CE_CHANGE_OI: item.CE?.changeinOpenInterest || 0,
           PE_CHANGE_OI: item.PE?.changeinOpenInterest || 0
         };
@@ -46,6 +76,9 @@ async function fetchOptionChain() {
       }
 
     });
+
+    market.optionChain = strikes;
+    market.atm = atm;
 
     console.log("Option Chain Updated | ATM:", atm);
 
@@ -56,31 +89,37 @@ async function fetchOptionChain() {
   }
 }
 
-/* OPTION CHAIN API */
-app.get("/option-chain", async (req, res) => {
+/* ===== API ===== */
 
-  try {
-
-    const r = await axios.get(OPTION_CHAIN_API);
-    res.json(r.data);
-
-  } catch (err) {
-
-    res.json({ error: err.message });
-
-  }
-
+app.get("/market", (req, res) => {
+  res.json(market);
 });
 
-/* ROOT */
+app.get("/option-chain", (req, res) => {
+  res.json({
+    atm: market.atm,
+    strikes: market.optionChain
+  });
+});
+
+/* ===== ROOT ===== */
+
 app.get("/", (req, res) => {
   res.send("BullBearMarket Backend Running");
 });
 
-/* SERVER START */
+/* ===== SERVER START ===== */
+
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
 
-/* AUTO UPDATE */
+/* ===== AUTO REFRESH ===== */
+
+setInterval(fetchMarket, 20000);
 setInterval(fetchOptionChain, 20000);
+
+/* FIRST LOAD */
+
+fetchMarket();
+fetchOptionChain();
