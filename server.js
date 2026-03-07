@@ -1,89 +1,212 @@
 const express = require("express");
 const axios = require("axios");
-const cors = require("cors");
 
 const app = express();
-app.use(cors());
-
 const PORT = process.env.PORT || 10000;
 
-/* MARKET DATA (Yahoo Finance) */
+/* ===========================
+   UPSTOX API
+=========================== */
 
-async function fetchMarket() {
+const API_KEY = "e43e54bc-3227-407c-a01c-fb558b4813cd";
+const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIxNTQ3NDAiLCJqdGkiOiI2OWFjMTRkMWZlM2ExODdjOTc0OTBkNzAiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlhdCI6MTc3Mjg4NTIwMSwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxNzcyOTIwODAwfQ.fi4JD-IaSZTiy2cIgAaVMpgqjDKigigFQ_d920_d7rU";
+
+/* ===========================
+   CACHE
+=========================== */
+
+let marketCache = null;
+let optionCache = null;
+
+let lastMarketUpdate = 0;
+let lastOptionUpdate = 0;
+
+/* ===========================
+   FETCH MARKET DATA
+=========================== */
+
+async function fetchMarketData() {
+
   try {
 
     const res = await axios.get(
-      "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN"
+      "https://api.upstox.com/v2/market-quote/ltp",
+      {
+        params: {
+          instrument_key:
+            "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank"
+        },
+        headers: {
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          Accept: "application/json"
+        }
+      }
     );
 
-    const data = res.data.quoteResponse.result;
+    const data = res.data.data;
 
-    return {
-      nifty: data[0].regularMarketPrice,
-      banknifty: data[1].regularMarketPrice,
-      sensex: data[2].regularMarketPrice,
-      time: Date.now()
+    const nifty = data["NSE_INDEX|Nifty 50"].last_price;
+    const banknifty = data["NSE_INDEX|Nifty Bank"].last_price;
+
+    /* Sensex Yahoo backup */
+
+    const sensexRes = await axios.get(
+      "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EBSESN"
+    );
+
+    const sensex =
+      sensexRes.data.quoteResponse.result[0].regularMarketPrice;
+
+    marketCache = {
+      nifty,
+      banknifty,
+      sensex,
+      source: "upstox"
     };
+
+    lastMarketUpdate = Date.now();
+
+    console.log("Market Updated");
 
   } catch (err) {
 
-    console.log("Market Error:", err.message);
+    console.log("Upstox failed → Yahoo fallback");
 
-    return {
-      error: "market fetch failed"
-    };
+    try {
+
+      const res = await axios.get(
+        "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN"
+      );
+
+      const q = res.data.quoteResponse.result;
+
+      marketCache = {
+        nifty: q[0].regularMarketPrice,
+        banknifty: q[1].regularMarketPrice,
+        sensex: q[2].regularMarketPrice,
+        source: "yahoo"
+      };
+
+      lastMarketUpdate = Date.now();
+
+    } catch (error) {
+
+      console.log("Yahoo also failed");
+
+    }
 
   }
+
 }
 
-/* OPTION CHAIN (UPSTOX) */
+/* ===========================
+   FETCH OPTION CHAIN
+=========================== */
 
 async function fetchOptionChain() {
 
   try {
 
     const res = await axios.get(
-      "https://api.upstox.com/v2/option/chain?instrument_key=NSE_INDEX|Nifty%2050",
+      "https://api.upstox.com/v2/option/chain",
       {
+        params: {
+          instrument_key: "NSE_INDEX|Nifty 50"
+        },
         headers: {
-          Authorization: "Bearer YOUR_UPSTOX_TOKEN"
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          Accept: "application/json"
         }
       }
     );
 
-    return res.data;
+    const list = res.data.data;
+
+    const strikes = [];
+
+    let atm = null;
+
+    if (marketCache) {
+
+      const price = marketCache.nifty;
+
+      let closest = Infinity;
+
+      list.forEach((row) => {
+
+        const diff = Math.abs(row.strike_price - price);
+
+        if (diff < closest) {
+          closest = diff;
+          atm = row.strike_price;
+        }
+
+        strikes.push({
+          strike: row.strike_price,
+          ce: row.call_options?.market_data?.ltp || 0,
+          pe: row.put_options?.market_data?.ltp || 0,
+          ce_oi: row.call_options?.market_data?.oi || 0,
+          pe_oi: row.put_options?.market_data?.oi || 0
+        });
+
+      });
+
+    }
+
+    optionCache = {
+      atm,
+      strikes
+    };
+
+    lastOptionUpdate = Date.now();
+
+    console.log("Option Chain Updated");
 
   } catch (err) {
 
     console.log("Option Chain Error:", err.message);
 
-    return {
-      error: "option chain failed"
-    };
-
   }
+
 }
 
-/* API ROUTES */
+/* ===========================
+   AUTO REFRESH
+=========================== */
+
+setInterval(fetchMarketData, 10000);
+setInterval(fetchOptionChain, 10000);
+
+/* ===========================
+   API ROUTES
+=========================== */
 
 app.get("/market", async (req, res) => {
 
-  const data = await fetchMarket();
+  if (!marketCache || Date.now() - lastMarketUpdate > 10000) {
+    await fetchMarketData();
+  }
 
-  res.json(data);
+  res.json(marketCache);
 
 });
 
 app.get("/option-chain", async (req, res) => {
 
-  const data = await fetchOptionChain();
+  if (!optionCache || Date.now() - lastOptionUpdate > 10000) {
+    await fetchOptionChain();
+  }
 
-  res.json(data);
+  res.json(optionCache);
 
 });
 
+/* ===========================
+   SERVER
+=========================== */
+
 app.listen(PORT, () => {
 
-  console.log("Server running on port", PORT);
+  console.log("BullBear Market Server Running on port", PORT);
 
 });
