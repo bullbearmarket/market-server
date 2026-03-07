@@ -1,39 +1,33 @@
 const axios = require("axios");
 
-let optionData = null;
+let optionCache = {};
 
-async function fetchOptionChain(symbol, expiry){
+async function fetchOptionChain(symbol, atm){
 
   try{
 
-    const url =
-      "https://api.upstox.com/v2/option/chain?symbol=" +
-      symbol +
-      "&expiry_date=" +
-      expiry;
+    const url = `https://api.upstox.com/v2/option/chain?symbol=${symbol}&strike=${atm}`;
 
-    const res = await axios.get(url, {
-      headers: {
-        Authorization: "Bearer " + process.env.UPSTOX_TOKEN
+    const response = await axios.get(url,{
+      headers:{
+        Authorization: `Bearer ${process.env.UPSTOX_TOKEN}`
       }
     });
 
-    optionData = res.data.data;
+    optionCache[symbol] = response.data;
 
     console.log(symbol + " option chain updated");
 
   }catch(err){
 
-    console.log("Option Engine Error");
+    console.log("Option Chain Error", err.message);
 
   }
 
 }
 
-function getOptionChain(){
-
-  return optionData;
-
+function getOptionChain(symbol){
+  return optionCache[symbol];
 }
 
 module.exports = {
