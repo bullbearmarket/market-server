@@ -112,9 +112,6 @@ console.log("Option Chain Updated | ATM:", atm);
 
     };
 
-    await db.ref("optionchain/nifty").set(optionData);
-
-    console.log("Option Chain Updated | ATM:", atm);
 
   } catch (err) {
 
@@ -145,4 +142,5 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 
 });
+
 
