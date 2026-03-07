@@ -1,5 +1,6 @@
 const express = require("express");
 const axios = require("axios");
+const instrumentEngine = require("./engines/instrumentEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -132,6 +133,16 @@ app.get("/option-chain", (req, res) => {
 
 /* ---------- SERVER ---------- */
 
+async function startEngine(){
+
+await instrumentEngine.downloadInstrumentFile();
+await instrumentEngine.parseInstrumentFile();
+
+}
+
+startEngine();
+
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
