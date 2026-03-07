@@ -1,5 +1,6 @@
 const marketEngine = require("./marketEngine");
 const strikeEngine = require("./strikeEngine");
+const optionEngine = require("./optionEngine");
 
 let systemState = {
   NIFTY_ATM: null,
@@ -28,7 +29,9 @@ function startMasterEngine(){
 
     strikeEngine.buildLadder("NIFTY", niftyATM);
     strikeEngine.buildLadder("BANKNIFTY", bankniftyATM);
-
+optionEngine.fetchOptionChain("NIFTY", systemState.NIFTY_ATM);
+optionEngine.fetchOptionChain("BANKNIFTY", systemState.BANKNIFTY_ATM);
+    
     console.log("ATM Updated", systemState);
 
   }, 10000);
