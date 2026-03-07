@@ -65,9 +65,9 @@ async function fetchOptionChain() {
 
   try {
 
-    const res = await api.get(
-      "https://raw.githubusercontent.com/rohan-paul/option-chain-data/main/nifty.json"
-    );
+   const res = await api.get(
+"https://cdn.jsdelivr.net/gh/VarunS2002/nse-data/option-chain/nifty.json"
+);
 
     const records = res.data.records.data;
     const spot = res.data.records.underlyingValue;
@@ -134,3 +134,4 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 
 });
+
