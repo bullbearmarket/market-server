@@ -59,15 +59,13 @@ async function fetchOptionChain() {
 
   try {
 
-    const proxyURL =
-      "https://api.allorigins.win/raw?url=" +
-      encodeURIComponent("https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY");
+   const res = await api.get(
+"https://query2.finance.yahoo.com/v7/finance/options/%5ENSEI"
+);
 
-    const res = await api.get(proxyURL);
-
-    const records = res.data.records.data;
-    const spot = res.data.records.underlyingValue;
-
+    const records = res.data.optionChain.result[0].options[0].calls;
+const spot = res.data.optionChain.result[0].quote.regularMarketPrice;
+    
     const atm = Math.round(spot / 50) * 50;
 
     let strikes = {};
@@ -124,3 +122,4 @@ setInterval(fetchOptionChain, 60000);
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
