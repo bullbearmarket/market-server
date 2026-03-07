@@ -9,20 +9,29 @@ async function fetchMarketPrices(){
 
   try{
 
-    const url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK";
+    const url = "https://api.upstox.com/v2/market-quote/quotes?instrument_key=NSE_INDEX|Nifty%2050,NSE_INDEX|Nifty%20Bank";
 
-    const res = await axios.get(url);
+    const res = await axios.get(url,{
+      headers:{
+        Authorization: `Bearer ${process.env.UPSTOX_TOKEN}`,
+        Accept: "application/json"
+      }
+    });
 
-    const data = res.data.quoteResponse.result;
+    const data = res.data.data;
 
-    market.NIFTY = data[0].regularMarketPrice;
-    market.BANKNIFTY = data[1].regularMarketPrice;
+    if(data){
 
-    console.log("Market Updated", market);
+      market.NIFTY = data["NSE_INDEX|Nifty 50"].last_price;
+      market.BANKNIFTY = data["NSE_INDEX|Nifty Bank"].last_price;
+
+    }
+
+    console.log("Market Updated:", market);
 
   }catch(err){
 
-    console.log("Market Engine Error");
+    console.log("Market Engine Error:", err.response?.data || err.message);
 
   }
 
