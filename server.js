@@ -74,6 +74,10 @@ const response = await axiosInstance.get(
   "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
 );
 
+   if (!response.data || !response.data.records) {
+  console.log("NSE returned empty response");
+  return;
+} 
     const records = response.data.records.data;
     const spot = response.data.records.underlyingValue;
 
@@ -138,6 +142,7 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
 
 
 
