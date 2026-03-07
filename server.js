@@ -16,23 +16,29 @@ admin.initializeApp({
 
 const db = admin.database();
 
-/* MARKET INDEX */
+/* AXIOS CLIENT */
+
+const api = axios.create({
+  timeout: 10000,
+  headers: {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "application/json"
+  }
+});
+
+/* MARKET DATA */
 
 async function fetchMarket() {
 
   try {
 
-    const nifty = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"
-    );
+    const [nifty, banknifty, sensex] = await Promise.all([
 
-    const banknifty = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"
-    );
+      api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"),
+      api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"),
+      api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN")
 
-    const sensex = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN"
-    );
+    ]);
 
     const data = {
 
@@ -49,45 +55,38 @@ async function fetchMarket() {
 
   } catch (err) {
 
-    console.log("Market Error:", err.message);
+    if (err.response && err.response.status === 429) {
+
+      console.log("Yahoo rate limited - waiting...");
+
+    } else {
+
+      console.log("Market Error:", err.message);
+
+    }
 
   }
 
 }
 
-/* NSE OPTION CHAIN */
+/* OPTION CHAIN */
 
 async function fetchOptionChain() {
 
   try {
 
-    const nse = axios.create({
-      baseURL: "https://www.nseindia.com",
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept": "application/json",
-        "Connection": "keep-alive"
-      }
-    });
-
-    /* cookie generate */
-
-    await nse.get("/option-chain");
-
-    const response = await nse.get(
-      "/api/option-chain-indices?symbol=NIFTY"
+    const res = await api.get(
+      "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
     );
 
-    if (!response.data || !response.data.records) {
+    if (!res.data || !res.data.records) {
 
       console.log("Option chain empty");
       return;
 
     }
 
-    const records = response.data.records.data;
+    const records = res.data.records.data;
 
     let optionData = {};
 
@@ -110,20 +109,28 @@ async function fetchOptionChain() {
 
     await db.ref("optionchain/nifty").set(optionData);
 
-    console.log("Option Chain Updated");
+    console.log("Option chain updated");
 
   } catch (err) {
 
-    console.log("Option Chain Error:", err.message);
+    if (err.response && err.response.status === 429) {
+
+      console.log("NSE rate limited - waiting...");
+
+    } else {
+
+      console.log("Option Chain Error:", err.message);
+
+    }
 
   }
 
 }
 
-/* AUTO UPDATE */
+/* UPDATE INTERVAL */
 
-setInterval(fetchMarket, 5000);
-setInterval(fetchOptionChain, 15000);
+setInterval(fetchMarket, 20000);     // 20 sec
+setInterval(fetchOptionChain, 60000); // 60 sec
 
 /* SERVER */
 
