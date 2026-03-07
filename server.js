@@ -1,21 +1,22 @@
-import express from "express";
-import axios from "axios";
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ===== Worker URL (तुम्हारा Cloudflare worker) ===== */
+/* CLOUDLFARE WORKER API */
 const OPTION_CHAIN_API =
   "https://lingering-math-11eb.moneymaker-earnmoney.workers.dev";
 
-/* ===== Market spot dummy endpoint example ===== */
+/* MARKET DATA */
 let market = {
-  nifty: 0,
+  nifty: 0
 };
 
-/* ===== OPTION CHAIN FETCH ===== */
+/* OPTION CHAIN FETCH */
 async function fetchOptionChain() {
   try {
+
     const res = await axios.get(OPTION_CHAIN_API);
 
     const records = res.data.records.data;
@@ -27,48 +28,59 @@ async function fetchOptionChain() {
 
     let strikes = {};
 
-    records.forEach((item) => {
+    records.forEach(item => {
+
       const strike = item.strikePrice;
 
       if (Math.abs(strike - atm) <= 500) {
+
         strikes[strike] = {
           CE_LTP: item.CE?.lastPrice || 0,
           PE_LTP: item.PE?.lastPrice || 0,
           CE_OI: item.CE?.openInterest || 0,
           PE_OI: item.PE?.openInterest || 0,
           CE_CHANGE_OI: item.CE?.changeinOpenInterest || 0,
-          PE_CHANGE_OI: item.PE?.changeinOpenInterest || 0,
+          PE_CHANGE_OI: item.PE?.changeinOpenInterest || 0
         };
+
       }
+
     });
 
     console.log("Option Chain Updated | ATM:", atm);
 
-    return {
-      spot,
-      atm,
-      strikes,
-    };
   } catch (err) {
+
     console.log("Option Chain Error:", err.message);
+
   }
 }
 
-/* ===== API endpoint ===== */
+/* OPTION CHAIN API */
 app.get("/option-chain", async (req, res) => {
-  const data = await fetchOptionChain();
-  res.json(data);
+
+  try {
+
+    const r = await axios.get(OPTION_CHAIN_API);
+    res.json(r.data);
+
+  } catch (err) {
+
+    res.json({ error: err.message });
+
+  }
+
 });
 
-/* ===== health endpoint ===== */
+/* ROOT */
 app.get("/", (req, res) => {
-  res.send("Server Running");
+  res.send("BullBearMarket Backend Running");
 });
 
-/* ===== start server ===== */
+/* SERVER START */
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port", PORT);
 });
 
-/* ===== refresh option chain ===== */
+/* AUTO UPDATE */
 setInterval(fetchOptionChain, 20000);
