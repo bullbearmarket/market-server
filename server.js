@@ -132,8 +132,14 @@ app.get("/market", (req, res) => {
   res.json(marketCache);
 });
 
-app.get("/option-chain", (req, res) => {
-  res.json(optionCache);
+app.get("/option-chain/:symbol",(req,res)=>{
+
+  const symbol = req.params.symbol;
+
+  const data = optionEngine.getOptionChain(symbol);
+
+  res.json(data);
+
 });
 
 /* ---------- SERVER ---------- */
@@ -157,6 +163,7 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
 
