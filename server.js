@@ -36,7 +36,7 @@ async function fetchOptionChain() {
   try {
 
 const res = await axios.get(
-"https://api.niftyoptionchain.com/v1/nifty"
+"https://lingering-math-11eb.moneymaker-earnmoney.workers.dev"
 );
 
    const data = res.data.data;
@@ -93,5 +93,6 @@ setInterval(fetchOptionChain, 60000);
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
