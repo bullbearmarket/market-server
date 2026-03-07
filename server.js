@@ -39,9 +39,39 @@ const res = await axios.get(
 "https://api.niftyoptionchain.com/v1/nifty"
 );
 
-    const data = res.data.data;
+   const data = res.data.data;
 
-    console.log("Option Chain Received:", data.length);
+const spot = data.spot;
+
+const atm = Math.round(spot / 50) * 50;
+
+let strikes = {};
+
+data.strikes.forEach(item => {
+
+  const strike = item.strike;
+
+  if (Math.abs(strike - atm) <= 500) {
+
+    strikes[strike] = {
+      CE: item.ce_ltp,
+      PE: item.pe_ltp,
+      CE_OI: item.ce_oi,
+      PE_OI: item.pe_oi
+    };
+
+  }
+
+});
+
+await db.ref("optionchain/nifty").set({
+  spot: spot,
+  atm: atm,
+  strikes: strikes,
+  time: Date.now()
+});
+
+console.log("Option Chain Updated | ATM:", atm);
 
   } catch (err) {
 
@@ -63,4 +93,5 @@ setInterval(fetchOptionChain, 60000);
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
