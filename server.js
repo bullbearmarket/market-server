@@ -110,7 +110,7 @@ time: Date.now()
 
 console.log("Option Chain Updated | ATM:", atm);
 
-    };
+  }
 
 
   } catch (err) {
@@ -142,5 +142,6 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 
 });
+
 
 
