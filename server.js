@@ -1,11 +1,11 @@
 const express = require("express");
 const axios = require("axios");
+
 const instrumentEngine = require("./engines/instrumentEngine");
 const expiryEngine = require("./engines/expiryEngine");
-const strikeEngine = require("./engines/strikeEngine");
-const marketEngine = require("./engines/marketEngine");
-const optionEngine = require("./engines/optionEngine");
 const masterEngine = require("./engines/masterEngine");
+
+const optionEngine = require("./engines/optionEngine");
 const analyzerEngine = require("./engines/analyzerEngine");
 const signalEngine = require("./engines/signalEngine");
 const smartMoneyEngine = require("./engines/smartMoneyEngine");
@@ -20,33 +20,22 @@ const ACCESS_TOKEN = process.env.UPSTOX_TOKEN;
 /* ---------- CACHE ---------- */
 
 let marketCache = null;
-let optionCache = null;
-
-/* ---------- NEXT THURSDAY ---------- */
-
-function getNextThursday() {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = (4 + 7 - day) % 7 || 7;
-  const next = new Date(now);
-  next.setDate(now.getDate() + diff);
-  return next.toISOString().split("T")[0];
-}
 
 /* ---------- MARKET DATA ---------- */
 
-async function fetchMarket() {
-  try {
+async function fetchMarket(){
+
+  try{
+
     const res = await axios.get(
       "https://api.upstox.com/v2/market-quote/ltp",
       {
-        params: {
-          instrument_key:
-            "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank"
+        params:{
+          instrument_key:"NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank"
         },
-        headers: {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          Accept: "application/json"
+        headers:{
+          Authorization:`Bearer ${ACCESS_TOKEN}`,
+          Accept:"application/json"
         }
       }
     );
@@ -67,16 +56,16 @@ async function fetchMarket() {
       nifty,
       banknifty,
       sensex,
-      source: "upstox"
+      source:"upstox"
     };
 
-    console.log("Market updated");
+    console.log("Market updated", marketCache);
 
-  } catch (e) {
+  }catch(e){
 
     console.log("Upstox failed → Yahoo fallback");
 
-    try {
+    try{
 
       const res = await axios.get(
         "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK"
@@ -85,118 +74,56 @@ async function fetchMarket() {
       const q = res.data.quoteResponse.result;
 
       marketCache = {
-        nifty: q[0].regularMarketPrice,
-        banknifty: q[1].regularMarketPrice,
-        source: "yahoo"
+        nifty:q[0].regularMarketPrice,
+        banknifty:q[1].regularMarketPrice,
+        source:"yahoo"
       };
 
-    } catch {
+    }catch{
       console.log("Yahoo fallback failed");
     }
-  }
-}
-
-/* ---------- OPTION CHAIN ---------- */
-
-async function fetchOption() {
-
-  try {
-
-    const expiry = getNextThursday();
-
-    const url =
-      `https://api.upstox.com/v2/option/chain?instrument_key=NSE_INDEX%7CNIFTY&expiry_date=${expiry}`;
-
-    const res = await axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-        Accept: "application/json"
-      }
-    });
-
-    optionCache = res.data.data;
-
-    console.log("Option chain updated");
-
-  } catch (e) {
-
-    console.log("Option Chain Error:", e.message);
 
   }
 
 }
-
-/* ---------- REFRESH ---------- */
-
-setInterval(fetchMarket, 10000);
-setInterval(fetchOption, 10000);
 
 /* ---------- ROUTES ---------- */
 
-app.get("/market", (req, res) => {
+app.get("/market",(req,res)=>{
   res.json(marketCache);
 });
 
 app.get("/option-chain/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = optionEngine.getOptionChain(symbol);
-
-  res.json(data);
-
+  res.json(optionEngine.getOptionChain(symbol));
 });
 
 app.get("/analyze/:symbol",(req,res)=>{
-
-const symbol = req.params.symbol;
-
-const data = analyzerEngine.analyze(symbol);
-
-res.json(data);
-
+  const symbol = req.params.symbol;
+  res.json(analyzerEngine.analyze(symbol));
 });
 
 app.get("/signal/:symbol",(req,res)=>{
-
-const symbol = req.params.symbol;
-
-const data = signalEngine.generateSignal(symbol);
-
-res.json(data);
-
+  const symbol = req.params.symbol;
+  res.json(signalEngine.generateSignal(symbol));
 });
 
 app.get("/smart-money/:symbol",(req,res)=>{
-
-const symbol = req.params.symbol;
-
-const data = smartMoneyEngine.detectSmartMoney(symbol);
-
-res.json(data);
-
+  const symbol = req.params.symbol;
+  res.json(smartMoneyEngine.detectSmartMoney(symbol));
 });
 
 app.get("/market-pressure/:symbol",(req,res)=>{
-
-const symbol = req.params.symbol;
-
-const data = pressureEngine.calculatePressure(symbol);
-
-res.json(data);
-
+  const symbol = req.params.symbol;
+  res.json(pressureEngine.calculatePressure(symbol));
 });
+
 app.get("/ai-trade/:symbol",(req,res)=>{
-
-const symbol = req.params.symbol;
-
-const data = tradeEngine.generateTrade(symbol);
-
-res.json(data);
-
+  const symbol = req.params.symbol;
+  res.json(tradeEngine.generateTrade(symbol));
 });
 
-/* ---------- SERVER ---------- */
+/* ---------- START ENGINES ---------- */
 
 async function startEngine(){
 
@@ -206,27 +133,20 @@ async function startEngine(){
 
   expiryEngine.detectExpiries(instruments);
 
-  marketEngine.startMarketEngine();
-
   masterEngine.startMasterEngine();
+
+  /* market start */
+
+  await fetchMarket();
+
+  setInterval(fetchMarket,10000);
 
 }
 
 startEngine();
 
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+/* ---------- SERVER ---------- */
+
+app.listen(PORT,()=>{
+  console.log("Server running on port",PORT);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
