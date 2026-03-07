@@ -64,6 +64,7 @@ async function fetchOptionChain() {
   headers: {
     "User-Agent": "Mozilla/5.0",
     "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.nseindia.com/option-chain"
   }
 });
@@ -142,6 +143,7 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
 
 
 
