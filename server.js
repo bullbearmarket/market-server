@@ -5,6 +5,7 @@ const expiryEngine = require("./engines/expiryEngine");
 const strikeEngine = require("./engines/strikeEngine");
 const marketEngine = require("./engines/marketEngine");
 const optionEngine = require("./engines/optionEngine");
+const masterEngine = require("./engines/masterEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -139,11 +140,15 @@ app.get("/option-chain", (req, res) => {
 
 async function startEngine(){
 
-await instrumentEngine.downloadInstrumentFile();
+  await instrumentEngine.downloadInstrumentFile();
 
-const instruments = await instrumentEngine.parseInstrumentFile();
+  const instruments = await instrumentEngine.parseInstrumentFile();
 
-expiryEngine.detectExpiries(instruments);
+  expiryEngine.detectExpiries(instruments);
+
+  marketEngine.startMarketEngine();
+
+  masterEngine.startMasterEngine();
 
 }
 
@@ -152,6 +157,7 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
 
