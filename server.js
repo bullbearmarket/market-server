@@ -99,12 +99,16 @@ async function fetchOptionChain() {
 
     });
 
-    const optionData = {
+   await db.ref("optionchain/nifty").set({
 
-      spot: spot,
-      atm: atm,
-      strikes: strikes,
-      time: Date.now()
+spot: spot,
+atm: atm,
+strikes: strikes,
+time: Date.now()
+
+});
+
+console.log("Option Chain Updated | ATM:", atm);
 
     };
 
@@ -141,3 +145,4 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 
 });
+
