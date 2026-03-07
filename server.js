@@ -5,7 +5,7 @@ const admin = require("firebase-admin");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* FIREBASE */
+/* FIREBASE INIT */
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
@@ -16,7 +16,7 @@ admin.initializeApp({
 
 const db = admin.database();
 
-/* AXIOS */
+/* AXIOS CLIENT */
 
 const api = axios.create({
   timeout: 15000,
@@ -26,7 +26,6 @@ const api = axios.create({
   }
 });
 
-
 /* MARKET DATA */
 
 async function fetchMarket() {
@@ -34,11 +33,9 @@ async function fetchMarket() {
   try {
 
     const [nifty, banknifty, sensex] = await Promise.all([
-
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"),
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"),
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN")
-
     ]);
 
     const data = {
@@ -62,7 +59,6 @@ async function fetchMarket() {
 
 }
 
-
 /* OPTION CHAIN */
 
 async function fetchOptionChain() {
@@ -70,7 +66,7 @@ async function fetchOptionChain() {
   try {
 
     const res = await api.get(
-      "https://cdn.jsdelivr.net/gh/rohan-paul/option-chain-data@main/nifty.json"
+      "https://raw.githubusercontent.com/rohan-paul/option-chain-data/main/nifty.json"
     );
 
     const records = res.data.records.data;
@@ -99,19 +95,16 @@ async function fetchOptionChain() {
 
     });
 
-   await db.ref("optionchain/nifty").set({
+    await db.ref("optionchain/nifty").set({
 
-spot: spot,
-atm: atm,
-strikes: strikes,
-time: Date.now()
+      spot: spot,
+      atm: atm,
+      strikes: strikes,
+      time: Date.now()
 
-});
+    });
 
-console.log("Option Chain Updated | ATM:", atm);
-
-  }
-
+    console.log("Option Chain Updated | ATM:", atm);
 
   } catch (err) {
 
@@ -121,14 +114,7 @@ console.log("Option Chain Updated | ATM:", atm);
 
 }
 
-
-/* UPDATE INTERVAL */
-
-setInterval(fetchMarket, 20000);
-setInterval(fetchOptionChain, 60000);
-
-
-/* SERVER */
+/* SERVER ROUTE */
 
 app.get("/", (req, res) => {
 
@@ -136,12 +122,15 @@ app.get("/", (req, res) => {
 
 });
 
+/* UPDATE INTERVAL */
+
+setInterval(fetchMarket, 20000);
+setInterval(fetchOptionChain, 60000);
+
+/* START SERVER */
 
 app.listen(PORT, () => {
 
   console.log("Server running on port", PORT);
 
 });
-
-
-
