@@ -4,50 +4,28 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ===========================
-   UPSTOX TOKEN
-=========================== */
+const ACCESS_TOKEN = process.env.UPSTOX_TOKEN;
 
-const ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIxNTQ3NDAiLCJqdGkiOiI2OWFjMTRkMWZlM2ExODdjOTc0OTBkNzAiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlhdCI6MTc3Mjg4NTIwMSwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxNzcyOTIwODAwfQ.fi4JD-IaSZTiy2cIgAaVMpgqjDKigigFQ_d920_d7rU";
-
-/* ===========================
-   CACHE
-=========================== */
+/* ---------- CACHE ---------- */
 
 let marketCache = null;
 let optionCache = null;
 
-let marketTime = 0;
-let optionTime = 0;
+/* ---------- NEXT THURSDAY ---------- */
 
-/* ===========================
-   AUTO EXPIRY (NEXT THURSDAY)
-=========================== */
-
-function getNextExpiry() {
-
+function getNextThursday() {
   const now = new Date();
-
   const day = now.getDay();
-
   const diff = (4 + 7 - day) % 7 || 7;
-
-  const expiry = new Date(now);
-
-  expiry.setDate(now.getDate() + diff);
-
-  return expiry.toISOString().split("T")[0];
-
+  const next = new Date(now);
+  next.setDate(now.getDate() + diff);
+  return next.toISOString().split("T")[0];
 }
 
-/* ===========================
-   MARKET DATA
-=========================== */
+/* ---------- MARKET DATA ---------- */
 
-async function fetchMarketData() {
-
+async function fetchMarket() {
   try {
-
     const res = await axios.get(
       "https://api.upstox.com/v2/market-quote/ltp",
       {
@@ -62,10 +40,10 @@ async function fetchMarketData() {
       }
     );
 
-    const data = res.data.data;
+    const d = res.data.data;
 
-    const nifty = data["NSE_INDEX|Nifty 50"].last_price;
-    const banknifty = data["NSE_INDEX|Nifty Bank"].last_price;
+    const nifty = d["NSE_INDEX|Nifty 50"].last_price;
+    const banknifty = d["NSE_INDEX|Nifty Bank"].last_price;
 
     const sensexRes = await axios.get(
       "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EBSESN"
@@ -81,18 +59,16 @@ async function fetchMarketData() {
       source: "upstox"
     };
 
-    marketTime = Date.now();
+    console.log("Market updated");
 
-    console.log("Market Updated");
-
-  } catch (err) {
+  } catch (e) {
 
     console.log("Upstox failed → Yahoo fallback");
 
     try {
 
       const res = await axios.get(
-        "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN"
+        "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK"
       );
 
       const q = res.data.quoteResponse.result;
@@ -100,151 +76,62 @@ async function fetchMarketData() {
       marketCache = {
         nifty: q[0].regularMarketPrice,
         banknifty: q[1].regularMarketPrice,
-        sensex: q[2].regularMarketPrice,
         source: "yahoo"
       };
 
-      marketTime = Date.now();
-
-    } catch (error) {
-
-      console.log("Yahoo failed");
-
+    } catch {
+      console.log("Yahoo fallback failed");
     }
-
   }
-
 }
 
-/* ===========================
-   OPTION CHAIN
-=========================== */
+/* ---------- OPTION CHAIN ---------- */
 
-async function fetchOptionChain() {
+async function fetchOption() {
 
   try {
 
-    const expiry = getNextExpiry();
+    const expiry = getNextThursday();
 
-    const res = await axios.get(
-      "https://api.upstox.com/v2/option/chain",
-      {
-        params: {
-          instrument_key: "NSE_INDEX|NIFTY",
-          expiry_date: expiry
-        },
-        headers: {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          Accept: "application/json"
-        }
+    const url =
+      `https://api.upstox.com/v2/option/chain?instrument_key=NSE_INDEX%7CNIFTY&expiry_date=${expiry}`;
+
+    const res = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        Accept: "application/json"
       }
-    );
+    });
 
-    const list = res.data.data;
+    optionCache = res.data.data;
 
-    const strikes = [];
+    console.log("Option chain updated");
 
-    let atm = null;
+  } catch (e) {
 
-    if (marketCache) {
-
-      const price = marketCache.nifty;
-
-      let closest = Infinity;
-
-      list.forEach((row) => {
-
-        const diff = Math.abs(row.strike_price - price);
-
-        if (diff < closest) {
-
-          closest = diff;
-
-          atm = row.strike_price;
-
-        }
-
-        strikes.push({
-
-          strike: row.strike_price,
-
-          ce: row.call_options?.market_data?.ltp || 0,
-
-          pe: row.put_options?.market_data?.ltp || 0,
-
-          ce_oi: row.call_options?.market_data?.oi || 0,
-
-          pe_oi: row.put_options?.market_data?.oi || 0
-
-        });
-
-      });
-
-    }
-
-    optionCache = {
-
-      expiry,
-
-      atm,
-
-      strikes
-
-    };
-
-    optionTime = Date.now();
-
-    console.log("Option Chain Updated");
-
-  } catch (err) {
-
-    console.log("Option Chain Error:", err.message);
+    console.log("Option Chain Error:", e.message);
 
   }
 
 }
 
-/* ===========================
-   AUTO REFRESH
-=========================== */
+/* ---------- REFRESH ---------- */
 
-setInterval(fetchMarketData, 10000);
-setInterval(fetchOptionChain, 10000);
+setInterval(fetchMarket, 10000);
+setInterval(fetchOption, 10000);
 
-/* ===========================
-   API ROUTES
-=========================== */
+/* ---------- ROUTES ---------- */
 
-app.get("/market", async (req, res) => {
-
-  if (!marketCache || Date.now() - marketTime > 10000) {
-
-    await fetchMarketData();
-
-  }
-
+app.get("/market", (req, res) => {
   res.json(marketCache);
-
 });
 
-app.get("/option-chain", async (req, res) => {
-
-  if (!optionCache || Date.now() - optionTime > 10000) {
-
-    await fetchOptionChain();
-
-  }
-
+app.get("/option-chain", (req, res) => {
   res.json(optionCache);
-
 });
 
-/* ===========================
-   SERVER
-=========================== */
+/* ---------- SERVER ---------- */
 
 app.listen(PORT, () => {
-
-  console.log("BullBear Market Server Running", PORT);
-
+  console.log("Server running on port", PORT);
 });
