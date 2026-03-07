@@ -11,48 +11,57 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL:
-    "https://bullbearmarket7-default-rtdb.asia-southeast1.firebasedatabase.app/"
+  databaseURL: process.env.FIREBASE_DB
 });
 
 const db = admin.database();
 
-/* AXIOS CLIENT */
+/* AXIOS */
 
 const api = axios.create({
   timeout: 15000,
   headers: {
     "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Connection": "keep-alive"
+    "Accept": "application/json"
   }
 });
+
 
 /* MARKET DATA */
 
 async function fetchMarket() {
+
   try {
+
     const [nifty, banknifty, sensex] = await Promise.all([
+
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"),
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"),
       api.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN")
+
     ]);
 
     const data = {
+
       nifty: nifty.data.chart.result[0].meta.regularMarketPrice,
       banknifty: banknifty.data.chart.result[0].meta.regularMarketPrice,
       sensex: sensex.data.chart.result[0].meta.regularMarketPrice,
       time: Date.now()
+
     };
 
     await db.ref("market").set(data);
 
     console.log("Market Updated:", data);
+
   } catch (err) {
+
     console.log("Market Error:", err.message);
+
   }
+
 }
+
 
 /* OPTION CHAIN */
 
@@ -60,30 +69,12 @@ async function fetchOptionChain() {
 
   try {
 
-   const axiosInstance = axios.create({
-  headers: {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.nseindia.com/option-chain"
-    "Connection": "keep-alive",
-  }
-});
+    const res = await api.get(
+      "https://cdn.jsdelivr.net/gh/rohan-paul/option-chain-data@main/nifty.json"
+    );
 
-await axiosInstance.get("https://www.nseindia.com");
-    
-await new Promise(resolve => setTimeout(resolve, 1500));
-    
-const response = await axiosInstance.get(
-  "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY"
-);
-
-   if (!response.data || !response.data.records) {
-  console.log("NSE returned empty response");
-  return;
-} 
-    const records = response.data.records.data;
-    const spot = response.data.records.underlyingValue;
+    const records = res.data.records.data;
+    const spot = res.data.records.underlyingValue;
 
     const atm = Math.round(spot / 50) * 50;
 
@@ -91,38 +82,35 @@ const response = await axiosInstance.get(
 
     records.forEach(item => {
 
-      if (
-        item.strikePrice >= atm - 250 &&
-        item.strikePrice <= atm + 250
-      ) {
+      const strike = item.strikePrice;
 
-        if (item.CE && item.PE) {
+      if (Math.abs(strike - atm) <= 500) {
 
-          strikes[item.strikePrice] = {
+        strikes[strike] = {
 
-            ce: item.CE.lastPrice,
-            pe: item.PE.lastPrice,
-            ce_oi: item.CE.openInterest,
-            pe_oi: item.PE.openInterest
+          CE: item.CE ? item.CE.lastPrice : null,
+          PE: item.PE ? item.PE.lastPrice : null,
+          CE_OI: item.CE ? item.CE.openInterest : null,
+          PE_OI: item.PE ? item.PE.openInterest : null
 
-          };
-
-        }
+        };
 
       }
 
     });
 
     const optionData = {
+
       spot: spot,
       atm: atm,
       strikes: strikes,
       time: Date.now()
+
     };
 
     await db.ref("optionchain/nifty").set(optionData);
 
-    console.log("Option chain updated");
+    console.log("Option Chain Updated | ATM:", atm);
 
   } catch (err) {
 
@@ -132,24 +120,24 @@ const response = await axiosInstance.get(
 
 }
 
+
 /* UPDATE INTERVAL */
 
-setInterval(fetchMarket, 20000);   // 20 sec
-setInterval(fetchOptionChain, 60000); // 60 sec
+setInterval(fetchMarket, 20000);
+setInterval(fetchOptionChain, 60000);
+
 
 /* SERVER */
 
 app.get("/", (req, res) => {
+
   res.send("BullBear Market Server Running");
+
 });
+
 
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+
+  console.log("Server running on port", PORT);
+
 });
-
-
-
-
-
-
-
