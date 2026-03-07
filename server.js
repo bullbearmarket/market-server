@@ -16,15 +16,23 @@ admin.initializeApp({
 
 const db = admin.database();
 
-/* MARKET INDEX DATA */
+/* MARKET INDEX */
 
 async function fetchMarket() {
 
   try {
 
-    const nifty = await axios.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI");
-    const banknifty = await axios.get("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK");
-    const sensex = await axios.get("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN");
+    const nifty = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"
+    );
+
+    const banknifty = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"
+    );
+
+    const sensex = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN"
+    );
 
     const data = {
 
@@ -41,27 +49,43 @@ async function fetchMarket() {
 
   } catch (err) {
 
-    console.log("Market error:", err);
+    console.log("Market Error:", err.message);
 
   }
 
 }
 
-/* OPTION CHAIN */
+/* NSE OPTION CHAIN */
 
 async function fetchOptionChain() {
 
   try {
 
-    const response = await axios.get(
-      "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY",
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-          "Accept": "application/json"
-        }
+    const nse = axios.create({
+      baseURL: "https://www.nseindia.com",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "application/json",
+        "Connection": "keep-alive"
       }
+    });
+
+    /* cookie generate */
+
+    await nse.get("/option-chain");
+
+    const response = await nse.get(
+      "/api/option-chain-indices?symbol=NIFTY"
     );
+
+    if (!response.data || !response.data.records) {
+
+      console.log("Option chain empty");
+      return;
+
+    }
 
     const records = response.data.records.data;
 
@@ -74,7 +98,9 @@ async function fetchOptionChain() {
         optionData[item.strikePrice] = {
 
           ce: item.CE.lastPrice,
-          pe: item.PE.lastPrice
+          pe: item.PE.lastPrice,
+          ce_oi: item.CE.openInterest,
+          pe_oi: item.PE.openInterest
 
         };
 
@@ -88,7 +114,7 @@ async function fetchOptionChain() {
 
   } catch (err) {
 
-    console.log("Option chain error:", err);
+    console.log("Option Chain Error:", err.message);
 
   }
 
@@ -97,7 +123,7 @@ async function fetchOptionChain() {
 /* AUTO UPDATE */
 
 setInterval(fetchMarket, 5000);
-setInterval(fetchOptionChain, 10000);
+setInterval(fetchOptionChain, 15000);
 
 /* SERVER */
 
