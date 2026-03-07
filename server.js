@@ -35,9 +35,9 @@ async function fetchOptionChain() {
 
   try {
 
-    const res = await api.get(
-      "https://api.upstox.com/v2/market-quote/option-chain?instrument_key=NSE_INDEX|Nifty 50"
-    );
+const res = await axios.get(
+"https://api.niftyoptionchain.com/v1/nifty"
+);
 
     const data = res.data.data;
 
@@ -63,3 +63,4 @@ setInterval(fetchOptionChain, 60000);
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
