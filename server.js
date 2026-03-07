@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 10000;
 
 /* FIREBASE */
 
-const serviceAccount = require("./firebaseKey.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -118,3 +118,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
