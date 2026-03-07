@@ -10,6 +10,7 @@ const analyzerEngine = require("./engines/analyzerEngine");
 const signalEngine = require("./engines/signalEngine");
 const smartMoneyEngine = require("./engines/smartMoneyEngine");
 const pressureEngine = require("./engines/pressureEngine");
+const tradeEngine = require("./engines/tradeEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -185,6 +186,15 @@ const data = pressureEngine.calculatePressure(symbol);
 res.json(data);
 
 });
+app.get("/ai-trade/:symbol",(req,res)=>{
+
+const symbol = req.params.symbol;
+
+const data = tradeEngine.generateTrade(symbol);
+
+res.json(data);
+
+});
 
 /* ---------- SERVER ---------- */
 
@@ -207,6 +217,7 @@ startEngine();
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
+
 
 
 
