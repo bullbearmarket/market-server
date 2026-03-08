@@ -177,7 +177,7 @@ async function startEngine(){
 
   await fetchMarket();
 
-  setInterval(fetchMarket,10000);
+  setInterval(fetchMarket,60000);
 
   console.log("All Engines Started");
 
@@ -190,6 +190,7 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
 
 
 
