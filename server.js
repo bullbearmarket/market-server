@@ -24,38 +24,36 @@ let marketCache = {
   source:"yahoo"
 };
 
-/* ---------- FETCH MARKET (YAHOO ONLY) ---------- */
+/* ---------- FETCH MARKET (UPSTOX) ---------- */
 
 async function fetchMarket(){
 
   try{
 
-    const niftyRes = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"
+    const res = await axios.get(
+      "https://api.upstox.com/v2/market-quote/ltp",
+      {
+        params:{
+          instrument_key:"NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,BSE_INDEX|SENSEX"
+        },
+        headers:{
+          Authorization:`Bearer ${process.env.UPSTOX_TOKEN}`,
+          Accept:"application/json"
+        }
+      }
     );
 
-    const bankRes = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"
-    );
+    const data = res.data.data;
 
-    const sensexRes = await axios.get(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN"
-    );
-
-    const nifty =
-      niftyRes.data.chart.result[0].meta.regularMarketPrice;
-
-    const banknifty =
-      bankRes.data.chart.result[0].meta.regularMarketPrice;
-
-    const sensex =
-      sensexRes.data.chart.result[0].meta.regularMarketPrice;
+    const nifty = data["NSE_INDEX|Nifty 50"].last_price;
+    const banknifty = data["NSE_INDEX|Nifty Bank"].last_price;
+    const sensex = data["BSE_INDEX|SENSEX"].last_price;
 
     marketCache = {
       nifty,
       banknifty,
       sensex,
-      source:"yahoo"
+      source:"upstox"
     };
 
     console.log("Market Updated:",marketCache);
@@ -192,5 +190,6 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
 
 
