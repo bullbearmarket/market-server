@@ -30,21 +30,26 @@ async function fetchMarket(){
 
   try{
 
-    const res = await axios.get(
-"https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN",
-{
-  headers:{
-    "User-Agent":"Mozilla/5.0",
-    "Accept":"application/json"
-  }
-}
-);
+    const niftyRes = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI"
+    );
 
-    const q = res.data.quoteResponse.result;
+    const bankRes = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEBANK"
+    );
 
-    const nifty = q.find(i=>i.symbol==="^NSEI")?.regularMarketPrice;
-    const banknifty = q.find(i=>i.symbol==="^NSEBANK")?.regularMarketPrice;
-    const sensex = q.find(i=>i.symbol==="^BSESN")?.regularMarketPrice;
+    const sensexRes = await axios.get(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN"
+    );
+
+    const nifty =
+      niftyRes.data.chart.result[0].meta.regularMarketPrice;
+
+    const banknifty =
+      bankRes.data.chart.result[0].meta.regularMarketPrice;
+
+    const sensex =
+      sensexRes.data.chart.result[0].meta.regularMarketPrice;
 
     marketCache = {
       nifty,
@@ -57,12 +62,11 @@ async function fetchMarket(){
 
   }catch(err){
 
-    console.log("Yahoo Market Error:",err.message);
+    console.log("Market Fetch Error:",err.message);
 
   }
 
 }
-
 /* ---------- ROUTES ---------- */
 
 app.get("/",(req,res)=>{
@@ -188,4 +192,5 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
 
