@@ -1,4 +1,4 @@
-const marketEngine = require("./marketEngine");
+
 const strikeEngine = require("./strikeEngine");
 const optionEngine = require("./optionEngine");
 
@@ -17,7 +17,6 @@ function startMasterEngine(){
 
   setInterval(() => {
 
-    const market = marketEngine.getMarket();
 
     if(!market.NIFTY || !market.BANKNIFTY) return;
 
