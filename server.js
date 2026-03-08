@@ -15,16 +15,16 @@ const tradeEngine = require("./engines/tradeEngine");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ---------- MARKET CACHE ---------- */
+/* ---------------- MARKET CACHE ---------------- */
 
 let marketCache = {
-  nifty:null,
-  banknifty:null,
-  sensex:null,
-  source:"upstox"
+  nifty: null,
+  banknifty: null,
+  sensex: null,
+  source: "upstox"
 };
 
-/* ---------- FETCH MARKET (UPSTOX) ---------- */
+/* ---------------- FETCH MARKET ---------------- */
 
 async function fetchMarket(){
 
@@ -34,7 +34,7 @@ async function fetchMarket(){
       "https://api.upstox.com/v2/market-quote/ltp",
       {
         params:{
-          instrument_key:"NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,BSE_INDEX|SENSEX"
+          instrument_key:"NSE_INDEX|NIFTY 50,NSE_INDEX|NIFTY BANK"
         },
         headers:{
           Authorization:`Bearer ${process.env.UPSTOX_TOKEN}`,
@@ -43,123 +43,72 @@ async function fetchMarket(){
       }
     );
 
-    const data = res.data.data;
+    const d = res.data.data;
 
-    const nifty = data["NSE_INDEX|Nifty 50"].last_price;
-    const banknifty = data["NSE_INDEX|Nifty Bank"].last_price;
-    const sensex = data["BSE_INDEX|SENSEX"].last_price;
+    const nifty =
+      d["NSE_INDEX|NIFTY 50"]?.last_price ||
+      d["NSE_INDEX|Nifty 50"]?.last_price ||
+      null;
+
+    const banknifty =
+      d["NSE_INDEX|NIFTY BANK"]?.last_price ||
+      d["NSE_INDEX|Nifty Bank"]?.last_price ||
+      null;
 
     marketCache = {
       nifty,
       banknifty,
-      sensex,
+      sensex:null,
       source:"upstox"
     };
 
-    console.log("Market Updated:",marketCache);
+    console.log("Market Updated:", marketCache);
 
   }catch(err){
 
-    console.log("Market Fetch Error:",err.message);
+    console.log("Market Fetch Error:", err.message);
 
   }
 
 }
-/* ---------- ROUTES ---------- */
 
-app.get("/",(req,res)=>{
-  res.send("BullBear AI Backend Running");
-});
+/* ---------------- ROUTES ---------------- */
 
 app.get("/market",(req,res)=>{
   res.json(marketCache);
 });
 
 app.get("/option-chain/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = optionEngine.getOptionChain(symbol);
-
-  if(!data){
-    return res.json({error:"Option data not ready"});
-  }
-
-  res.json(data);
-
+  res.json(optionEngine.getOptionChain(symbol));
 });
 
 app.get("/analyze/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = analyzerEngine.analyze(symbol);
-
-  if(!data){
-    return res.json({error:"Analyzer not ready"});
-  }
-
-  res.json(data);
-
+  res.json(analyzerEngine.analyze(symbol));
 });
 
 app.get("/signal/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = signalEngine.generateSignal(symbol);
-
-  if(!data){
-    return res.json({error:"Signal not ready"});
-  }
-
-  res.json(data);
-
+  res.json(signalEngine.generateSignal(symbol));
 });
 
 app.get("/smart-money/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = smartMoneyEngine.detectSmartMoney(symbol);
-
-  if(!data){
-    return res.json({error:"Smart money not ready"});
-  }
-
-  res.json(data);
-
+  res.json(smartMoneyEngine.detectSmartMoney(symbol));
 });
 
 app.get("/market-pressure/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = pressureEngine.calculatePressure(symbol);
-
-  if(!data){
-    return res.json({error:"Pressure data not ready"});
-  }
-
-  res.json(data);
-
+  res.json(pressureEngine.calculatePressure(symbol));
 });
 
 app.get("/ai-trade/:symbol",(req,res)=>{
-
   const symbol = req.params.symbol;
-
-  const data = tradeEngine.generateTrade(symbol);
-
-  if(!data){
-    return res.json({error:"Trade engine not ready"});
-  }
-
-  res.json(data);
-
+  res.json(tradeEngine.generateTrade(symbol));
 });
 
-/* ---------- START ENGINES ---------- */
+/* ---------------- START ENGINES ---------------- */
 
 async function startEngine(){
 
@@ -177,7 +126,9 @@ async function startEngine(){
 
   await fetchMarket();
 
-  setInterval(fetchMarket,60000);
+  /* MARKET REFRESH 5 MINUTES */
+
+  setInterval(fetchMarket,300000);
 
   console.log("All Engines Started");
 
@@ -185,13 +136,8 @@ async function startEngine(){
 
 startEngine();
 
-/* ---------- SERVER ---------- */
+/* ---------------- SERVER ---------------- */
 
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
-
-
-
-
-
