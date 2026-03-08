@@ -31,16 +31,43 @@ async function fetchMarket(){
   try{
 
     const res = await axios.get(
-      "https://api.upstox.com/v2/market-quote/ltp",
+      "https://www.nseindia.com/api/allIndices",
       {
-        params:{
-          instrument_key:"NSE_INDEX|NIFTY 50,NSE_INDEX|NIFTY BANK"
-        },
         headers:{
-          Authorization:`Bearer ${process.env.UPSTOX_TOKEN}`,
-          Accept:"application/json"
+          "User-Agent":"Mozilla/5.0",
+          "Accept":"application/json",
+          "Accept-Language":"en-US,en;q=0.9"
         }
       }
+    );
+
+    const data = res.data.data;
+
+    const nifty =
+      data.find(i=>i.index==="NIFTY 50")?.last || null;
+
+    const banknifty =
+      data.find(i=>i.index==="NIFTY BANK")?.last || null;
+
+    const sensex =
+      data.find(i=>i.index==="SENSEX")?.last || null;
+
+    marketCache = {
+      nifty,
+      banknifty,
+      sensex,
+      source:"nse"
+    };
+
+    console.log("Market Updated:",marketCache);
+
+  }catch(err){
+
+    console.log("Market Fetch Error:",err.message);
+
+  }
+
+}
     );
 
     const d = res.data.data;
@@ -59,7 +86,7 @@ async function fetchMarket(){
       nifty,
       banknifty,
       sensex:null,
-      source:"upstox"
+      source:"nse"
     };
 
     console.log("Market Updated:", marketCache);
@@ -141,3 +168,4 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
