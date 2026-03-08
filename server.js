@@ -31,8 +31,14 @@ async function fetchMarket(){
   try{
 
     const res = await axios.get(
-      "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN"
-    );
+"https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN",
+{
+  headers:{
+    "User-Agent":"Mozilla/5.0",
+    "Accept":"application/json"
+  }
+}
+);
 
     const q = res.data.quoteResponse.result;
 
@@ -182,3 +188,4 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
