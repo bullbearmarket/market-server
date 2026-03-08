@@ -31,8 +31,8 @@ async function startMasterEngine(){
       strikeEngine.buildLadder("NIFTY", niftyATM);
       strikeEngine.buildLadder("BANKNIFTY", bankniftyATM);
 
-      optionEngine.fetchOptionChain("NIFTY", niftyATM, "2026-03-13");
-optionEngine.fetchOptionChain("BANKNIFTY", bankniftyATM, "2026-03-13");
+      optionEngine.fetchOptionChain("NIFTY", niftyATM, "2026-03-10");
+optionEngine.fetchOptionChain("BANKNIFTY", bankniftyATM, "2026-03-30");
 
       console.log("ATM Updated", systemState);
 
