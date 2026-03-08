@@ -90,7 +90,7 @@ async function fetchMarket(){
 /* ---------- ROUTES ---------- */
 
 app.get("/market",(req,res)=>{
-  res.json(marketCache);
+  res.json(marketEngine.getMarket());
 });
 
 app.get("/option-chain/:symbol",(req,res)=>{
@@ -150,3 +150,4 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
