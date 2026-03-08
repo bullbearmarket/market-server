@@ -1,4 +1,4 @@
-
+const axios = require("axios");
 const strikeEngine = require("./strikeEngine");
 const optionEngine = require("./optionEngine");
 
@@ -8,39 +8,46 @@ let systemState = {
 };
 
 function detectATM(price, step){
-
   return Math.round(price / step) * step;
-
 }
 
-function startMasterEngine(){
+async function startMasterEngine(){
 
-  setInterval(() => {
+  setInterval(async () => {
 
+    try{
 
-    if(!market.NIFTY || !market.BANKNIFTY) return;
+      const res = await axios.get("https://market-server-xxim.onrender.com/market");
+      const market = res.data;
 
-    const niftyATM = detectATM(market.NIFTY, 50);
-    const bankniftyATM = detectATM(market.BANKNIFTY, 100);
+      if(!market.nifty || !market.banknifty) return;
 
-    systemState.NIFTY_ATM = niftyATM;
-    systemState.BANKNIFTY_ATM = bankniftyATM;
+      const niftyATM = detectATM(market.nifty, 50);
+      const bankniftyATM = detectATM(market.banknifty, 100);
 
-    strikeEngine.buildLadder("NIFTY", niftyATM);
-    strikeEngine.buildLadder("BANKNIFTY", bankniftyATM);
-optionEngine.fetchOptionChain("NIFTY", systemState.NIFTY_ATM);
-optionEngine.fetchOptionChain("BANKNIFTY", systemState.BANKNIFTY_ATM);
-    
-    console.log("ATM Updated", systemState);
+      systemState.NIFTY_ATM = niftyATM;
+      systemState.BANKNIFTY_ATM = bankniftyATM;
+
+      strikeEngine.buildLadder("NIFTY", niftyATM);
+      strikeEngine.buildLadder("BANKNIFTY", bankniftyATM);
+
+      optionEngine.fetchOptionChain("NIFTY", niftyATM);
+      optionEngine.fetchOptionChain("BANKNIFTY", bankniftyATM);
+
+      console.log("ATM Updated", systemState);
+
+    }catch(err){
+
+      console.log("Master Engine Error:", err.message);
+
+    }
 
   }, 10000);
 
 }
 
 function getSystemState(){
-
   return systemState;
-
 }
 
 module.exports = {
