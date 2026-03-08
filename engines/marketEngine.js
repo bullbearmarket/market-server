@@ -3,11 +3,8 @@ const axios = require("axios");
 let market = {
   NIFTY: null,
   BANKNIFTY: null,
-  SENSEX: null,
-  time: null
+  SENSEX: null
 };
-
-/* FETCH MARKET DATA */
 
 async function fetchMarketPrices(){
 
@@ -18,8 +15,7 @@ async function fetchMarketPrices(){
 
     const res = await axios.get(url,{
       headers:{
-        "User-Agent":"Mozilla/5.0",
-        "Accept":"application/json"
+        "User-Agent":"Mozilla/5.0"
       }
     });
 
@@ -28,8 +24,6 @@ async function fetchMarketPrices(){
     market.NIFTY = data[0].regularMarketPrice;
     market.BANKNIFTY = data[1].regularMarketPrice;
     market.SENSEX = data[2].regularMarketPrice;
-
-    market.time = Date.now();
 
     console.log("Market Updated:",market);
 
@@ -41,8 +35,6 @@ async function fetchMarketPrices(){
 
 }
 
-/* START ENGINE */
-
 function startMarketEngine(){
 
   console.log("Market Engine Started");
@@ -52,8 +44,6 @@ function startMarketEngine(){
   setInterval(fetchMarketPrices,10000);
 
 }
-
-/* GET MARKET */
 
 function getMarket(){
 
