@@ -41,16 +41,21 @@ async function fetchMarket(){
       }
     );
 
-    const data = res.data.data;
+    const d = res.data.data;
 
-    const nifty =
-      data.find(i=>i.index==="NIFTY 50")?.last || null;
+const nifty =
+d["NSE_INDEX|NIFTY 50"]?.last_price ||
+d["NSE_INDEX|Nifty 50"]?.last_price ||
+null;
 
-    const banknifty =
-      data.find(i=>i.index==="NIFTY BANK")?.last || null;
+const banknifty =
+d["NSE_INDEX|NIFTY BANK"]?.last_price ||
+d["NSE_INDEX|Nifty Bank"]?.last_price ||
+null;
 
-    const sensex =
-      data.find(i=>i.index==="SENSEX")?.last || null;
+const sensex =
+d["BSE_INDEX|SENSEX"]?.last_price ||
+null;
 
     marketCache = {
       nifty,
@@ -168,4 +173,5 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
 
