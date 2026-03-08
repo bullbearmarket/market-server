@@ -4,7 +4,6 @@ const axios = require("axios");
 const instrumentEngine = require("./engines/instrumentEngine");
 const expiryEngine = require("./engines/expiryEngine");
 const masterEngine = require("./engines/masterEngine");
-
 const optionEngine = require("./engines/optionEngine");
 const analyzerEngine = require("./engines/analyzerEngine");
 const signalEngine = require("./engines/signalEngine");
@@ -21,7 +20,7 @@ let marketCache = {
   nifty: null,
   banknifty: null,
   sensex: null,
-  source: "upstox"
+  source: "nse"
 };
 
 /* ---------------- FETCH MARKET ---------------- */
@@ -41,21 +40,27 @@ async function fetchMarket(){
       }
     );
 
-    const d = res.data.data;
-console.log("UPSTOX DATA:", res.data);
-const nifty =
-d["NSE_INDEX|NIFTY 50"]?.last_price ||
-d["NSE_INDEX|Nifty 50"]?.last_price ||
-null;
+    const list = res.data.data;
 
-const banknifty =
-d["NSE_INDEX|NIFTY BANK"]?.last_price ||
-d["NSE_INDEX|Nifty Bank"]?.last_price ||
-null;
+    let nifty = null;
+    let banknifty = null;
+    let sensex = null;
 
-const sensex =
-d["BSE_INDEX|SENSEX"]?.last_price ||
-null;
+    for(const i of list){
+
+      if(i.index === "NIFTY 50"){
+        nifty = i.last;
+      }
+
+      if(i.index === "NIFTY BANK"){
+        banknifty = i.last;
+      }
+
+      if(i.index === "SENSEX"){
+        sensex = i.last;
+      }
+
+    }
 
     marketCache = {
       nifty,
@@ -66,41 +71,14 @@ null;
 
     console.log("Market Updated:",marketCache);
 
-  }catch(err){
+  }
+  catch(err){
 
     console.log("Market Fetch Error:",err.message);
 
   }
 
 }
-
-    const d = res.data.data;
-
-    const nifty =
-      d["NSE_INDEX|NIFTY 50"]?.last_price ||
-      d["NSE_INDEX|Nifty 50"]?.last_price ||
-      null;
-
-    const banknifty =
-      d["NSE_INDEX|NIFTY BANK"]?.last_price ||
-      d["NSE_INDEX|Nifty Bank"]?.last_price ||
-      null;
-
-    marketCache = {
-      nifty,
-      banknifty,
-      sensex:null,
-      source:"nse"
-    };
-
-    console.log("Market Updated:", marketCache);
-
-  }catch(err){
-
-    console.log("Market Fetch Error:", err.message);
-
-  }
-
 
 /* ---------------- ROUTES ---------------- */
 
@@ -156,9 +134,7 @@ async function startEngine(){
 
   await fetchMarket();
 
-  /* MARKET REFRESH 5 MINUTES */
-
-  setInterval(fetchMarket,300000);
+  setInterval(fetchMarket,300000); // 5 minutes
 
   console.log("All Engines Started");
 
@@ -171,8 +147,3 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
-
-
-
-
-
