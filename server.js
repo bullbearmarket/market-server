@@ -42,7 +42,7 @@ async function fetchMarket(){
     );
 
     const d = res.data.data;
-
+console.log("UPSTOX DATA:", res.data);
 const nifty =
 d["NSE_INDEX|NIFTY 50"]?.last_price ||
 d["NSE_INDEX|Nifty 50"]?.last_price ||
@@ -173,5 +173,6 @@ startEngine();
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
 
 
