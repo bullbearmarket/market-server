@@ -52,7 +52,7 @@ function startMarketEngine() {
 
   fetchMarket();
 
-  setInterval(fetchMarket, 20000);
+  setInterval(fetchMarket, 45000);
 
 }
 
