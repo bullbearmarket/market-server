@@ -1,148 +1,28 @@
 const express = require("express");
-const axios = require("axios");
 
-const instrumentEngine = require("./engines/instrumentEngine");
-const expiryEngine = require("./engines/expiryEngine");
+const marketEngine = require("./engines/marketEngine");
 const masterEngine = require("./engines/masterEngine");
 const optionEngine = require("./engines/optionEngine");
-const analyzerEngine = require("./engines/analyzerEngine");
-const signalEngine = require("./engines/signalEngine");
-const smartMoneyEngine = require("./engines/smartMoneyEngine");
-const pressureEngine = require("./engines/pressureEngine");
-const tradeEngine = require("./engines/tradeEngine");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ---------------- MARKET CACHE ---------------- */
+console.log("Starting Engines...");
 
-let marketCache = {
-  nifty: null,
-  banknifty: null,
-  sensex: null,
-  source: "nse"
-};
+// start engines
+marketEngine.startMarketEngine();
+masterEngine.startMasterEngine();
 
-/* ---------------- FETCH MARKET ---------------- */
-
-async function fetchMarket(){
-
-  try{
-
-    const res = await axios.get(
-      "https://www.nseindia.com/api/allIndices",
-      {
-        headers:{
-          "User-Agent":"Mozilla/5.0",
-          "Accept":"application/json",
-          "Accept-Language":"en-US,en;q=0.9"
-        }
-      }
-    );
-
-    const list = res.data.data;
-
-    let nifty = null;
-    let banknifty = null;
-    let sensex = null;
-
-    for(const i of list){
-
-      if(i.index === "NIFTY 50"){
-        nifty = i.last;
-      }
-
-      if(i.index === "NIFTY BANK"){
-        banknifty = i.last;
-      }
-
-      if(i.index === "SENSEX"){
-        sensex = i.last;
-      }
-
-    }
-
-    marketCache = {
-      nifty,
-      banknifty,
-      sensex,
-      source:"nse"
-    };
-
-    console.log("Market Updated:",marketCache);
-
-  }
-  catch(err){
-
-    console.log("Market Fetch Error:",err.message);
-
-  }
-
-}
-
-/* ---------------- ROUTES ---------------- */
+// ROUTES
 
 app.get("/market",(req,res)=>{
-  res.json(marketCache);
+  res.json(marketEngine.getMarket());
 });
 
 app.get("/option-chain/:symbol",(req,res)=>{
   const symbol = req.params.symbol;
   res.json(optionEngine.getOptionChain(symbol));
 });
-
-app.get("/analyze/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(analyzerEngine.analyze(symbol));
-});
-
-app.get("/signal/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(signalEngine.generateSignal(symbol));
-});
-
-app.get("/smart-money/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(smartMoneyEngine.detectSmartMoney(symbol));
-});
-
-app.get("/market-pressure/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(pressureEngine.calculatePressure(symbol));
-});
-
-app.get("/ai-trade/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(tradeEngine.generateTrade(symbol));
-});
-
-/* ---------------- START ENGINES ---------------- */
-
-async function startEngine(){
-
-  console.log("Starting Engines...");
-
-  await instrumentEngine.downloadInstrumentFile();
-
-  const instruments = await instrumentEngine.parseInstrumentFile();
-
-  expiryEngine.detectExpiries(instruments);
-
-  masterEngine.startMasterEngine();
-
-  console.log("Market Engine Started");
-
-  await fetchMarket();
-
-  setInterval(fetchMarket,300000); // 5 minutes
-
-  console.log("All Engines Started");
-
-}
-
-startEngine();
-
-/* ---------------- SERVER ---------------- */
 
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
