@@ -29,13 +29,14 @@ async function fetchOptionChain(symbol,expiry){
       }
     });
 
-    optionCache[symbol]=res.data;
+    optionCache[symbol] = res.data;
 
-    console.log(symbol+" option chain updated");
+    console.log(symbol,"option chain updated");
 
   }catch(err){
 
-    console.log("Option Chain Error:",err.response?.data||err.message);
+    console.log("Option Chain Error:",
+      err.response?.data || err.message);
 
   }
 
@@ -45,7 +46,7 @@ function getOptionChain(symbol){
   return optionCache[symbol];
 }
 
-module.exports={
+module.exports = {
   fetchOptionChain,
   getOptionChain
 };
