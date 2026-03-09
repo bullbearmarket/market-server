@@ -2,7 +2,7 @@ const axios = require("axios");
 
 let optionCache = {};
 
-async function fetchOptionChain(symbol){
+async function fetchOptionChain(symbol, expiry){
 
   try{
 
@@ -16,12 +16,13 @@ async function fetchOptionChain(symbol){
       instrument = "NSE_INDEX|Nifty%20Bank";
     }
 
-    const url = `https://api.upstox.com/v2/option/chain?instrument_key=${instrument}`;
+    const url =
+    `https://api.upstox.com/v2/option/chain?instrument_key=${instrument}&expiry_date=${expiry}`;
 
     const response = await axios.get(url,{
       headers:{
-        Authorization: `Bearer ${process.env.UPSTOX_TOKEN}`,
-        Accept: "application/json"
+        Authorization:`Bearer ${process.env.UPSTOX_TOKEN}`,
+        Accept:"application/json"
       }
     });
 
