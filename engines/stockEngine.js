@@ -2,46 +2,30 @@ const axios = require("axios");
 
 let stocks = [];
 
-const symbols = [
-"RELIANCE","TCS","HDFCBANK","ICICIBANK","INFY",
-"ITC","HINDUNILVR","LT","SBIN","BHARTIARTL",
-"KOTAKBANK","AXISBANK","ASIANPAINT","MARUTI",
-"SUNPHARMA","ULTRACEMCO","TITAN","BAJFINANCE",
-"BAJAJFINSV","NESTLEIND","POWERGRID","NTPC",
-"ONGC","TATASTEEL","JSWSTEEL","COALINDIA",
-"ADANIENT","ADANIPORTS","WIPRO","HCLTECH",
-"TECHM","CIPLA","DRREDDY","EICHERMOT",
-"HEROMOTOCO","BRITANNIA","APOLLOHOSP",
-"DIVISLAB","GRASIM","INDUSINDBK",
-"TATACONSUM","UPL","HDFCLIFE","SBILIFE",
-"BAJAJ-AUTO","SHREECEM","BPCL","IOC",
-"PIDILITIND","DABUR"
-];
-
 async function fetchStocks(){
 
   try{
 
     const url =
-    "https://query2.finance.yahoo.com/v7/finance/quote?symbols=" +
-    symbols.map(s => s + ".NS").join(",");
+    "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050";
 
-    const res = await axios.get(url,{
+    const response = await axios.get(url,{
       headers:{
-        "User-Agent":"Mozilla/5.0"
+        "User-Agent":"Mozilla/5.0",
+        "Accept":"application/json"
       }
     });
 
-    const data = res.data.quoteResponse.result;
+    const data = response.data.data;
 
-    stocks = data.map(item => ({
+    stocks = data.map((item)=>({
       symbol: item.symbol,
-      price: item.regularMarketPrice,
-      change: item.regularMarketChange,
-      percent: item.regularMarketChangePercent
+      price: item.lastPrice,
+      change: item.change,
+      percent: item.pChange
     }));
 
-    console.log("NIFTY 50 stocks updated");
+    console.log("NIFTY50 stocks updated");
 
   }catch(err){
 
@@ -55,7 +39,7 @@ function startStockEngine(){
 
   fetchStocks();
 
-  setInterval(fetchStocks,120000); // 2 min
+  setInterval(fetchStocks,120000); // 2 minute
 
 }
 
