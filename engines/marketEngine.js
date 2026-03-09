@@ -1,50 +1,65 @@
 const axios = require("axios");
 
 let market = {
-  nifty:null,
-  banknifty:null,
-  sensex:null
+  nifty: null,
+  banknifty: null,
+  sensex: null
 };
 
-async function fetchMarket(){
+async function fetchMarket() {
 
-  try{
+  try {
 
-    const url =
-    "https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5ENSEI,%5ENSEBANK,%5EBSESN";
+    const res = await axios.get(
+      "https://www.google.com/finance/quote/NIFTY_50:INDEXNSE"
+    );
 
-    const res = await axios.get(url,{
-      headers:{
-        "User-Agent":"Mozilla/5.0"
-      }
-    });
+    const html = res.data;
 
-    const data = res.data.quoteResponse.result;
+    const priceMatch = html.match(/data-last-price="([\d.]+)"/);
 
-    market.nifty = data[0].regularMarketPrice;
-    market.banknifty = data[1].regularMarketPrice;
-    market.sensex = data[2].regularMarketPrice;
+    if (priceMatch) {
 
-    console.log("Market Updated:",market);
+      market.nifty = parseFloat(priceMatch[1]);
 
-  }catch(err){
+    }
 
-    console.log("Market Fetch Error:",err.message);
+    const bank = await axios.get(
+      "https://www.google.com/finance/quote/NIFTY_BANK:INDEXNSE"
+    );
+
+    const html2 = bank.data;
+
+    const bankMatch = html2.match(/data-last-price="([\d.]+)"/);
+
+    if (bankMatch) {
+
+      market.banknifty = parseFloat(bankMatch[1]);
+
+    }
+
+    console.log("Market Updated:", market);
+
+  } catch (err) {
+
+    console.log("Market Fetch Error:", err.message);
 
   }
 
 }
 
-function startMarketEngine(){
+function startMarketEngine() {
 
   fetchMarket();
 
-  setInterval(fetchMarket,20000);
+  setInterval(fetchMarket, 20000);
 
 }
 
-function getMarket(){
+function getMarket() {
+
   return market;
+
 }
 
 module.exports = {
