@@ -45,7 +45,7 @@ async function startMasterEngine(){
 
     }
 
-  },30000);
+  },120000);
 
 }
 
