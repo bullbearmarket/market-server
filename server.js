@@ -1,5 +1,6 @@
 const express = require("express");
 
+const stockEngine = require("./engines/stockEngine");
 const marketEngine = require("./engines/marketEngine");
 const masterEngine = require("./engines/masterEngine");
 const optionEngine = require("./engines/optionEngine");
@@ -12,6 +13,7 @@ console.log("Starting Engines...");
 // start engines
 marketEngine.startMarketEngine();
 masterEngine.startMasterEngine();
+stockEngine.startStockEngine();
 
 // ROUTES
 
@@ -24,6 +26,11 @@ app.get("/option-chain/:symbol",(req,res)=>{
   res.json(optionEngine.getOptionChain(symbol));
 });
 
+app.get("/stocks",(req,res)=>{
+  res.json(stockEngine.getStocks());
+});
+
 app.listen(PORT,()=>{
   console.log("Server running on port",PORT);
 });
+
