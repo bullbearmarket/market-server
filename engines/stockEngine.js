@@ -12,8 +12,11 @@ async function fetchStocks(){
 
     const response = await axios.get(url,{
       headers:{
-        "User-Agent":"Mozilla/5.0",
-        "Accept":"application/json"
+        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept":"application/json",
+        "Accept-Language":"en-US,en;q=0.9",
+        "Referer":"https://www.nseindia.com/",
+        "Connection":"keep-alive"
       }
     });
 
@@ -26,8 +29,14 @@ async function fetchStocks(){
       percent: item.pChange
     }));
 
-    // Firebase update
-    await db.ref("stocks").set(stocks);
+    // 🔥 Firebase update
+    await db.ref("stocks").set(stocks)
+    .then(()=>{
+      console.log("Firebase stocks updated");
+    })
+    .catch((err)=>{
+      console.log("Firebase stock write error:",err);
+    });
 
     console.log("NIFTY50 stocks updated");
 
@@ -41,17 +50,16 @@ async function fetchStocks(){
 
 function startStockEngine(){
 
+  console.log("Stock Engine Started");
+
   fetchStocks();
 
-  // Timing वही रखा है (2 minute)
   setInterval(fetchStocks,120000);
 
 }
 
 function getStocks(){
-
   return stocks;
-
 }
 
 module.exports = {
