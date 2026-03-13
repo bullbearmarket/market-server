@@ -1,4 +1,5 @@
 const axios = require("axios");
+const db = require("../firebase");
 
 let market = {
   nifty: null,
@@ -19,9 +20,7 @@ async function fetchMarket() {
     const priceMatch = html.match(/data-last-price="([\d.]+)"/);
 
     if (priceMatch) {
-
       market.nifty = parseFloat(priceMatch[1]);
-
     }
 
     const bank = await axios.get(
@@ -33,10 +32,11 @@ async function fetchMarket() {
     const bankMatch = html2.match(/data-last-price="([\d.]+)"/);
 
     if (bankMatch) {
-
       market.banknifty = parseFloat(bankMatch[1]);
-
     }
+
+    // 🔥 Firebase update
+    await db.ref("market").set(market);
 
     console.log("Market Updated:", market);
 
