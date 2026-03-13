@@ -1,4 +1,5 @@
 const axios = require("axios");
+const db = require("../firebase");
 
 let stocks = [];
 
@@ -25,11 +26,14 @@ async function fetchStocks(){
       percent: item.pChange
     }));
 
+    // Firebase update
+    await db.ref("stocks").set(stocks);
+
     console.log("NIFTY50 stocks updated");
 
   }catch(err){
 
-    console.log("Stock Engine Error:",err.message);
+    console.log("Stock Engine Error:", err.message);
 
   }
 
@@ -39,7 +43,8 @@ function startStockEngine(){
 
   fetchStocks();
 
-  setInterval(fetchStocks,120000); // 2 minute
+  // Timing वही रखा है (2 minute)
+  setInterval(fetchStocks,120000);
 
 }
 
