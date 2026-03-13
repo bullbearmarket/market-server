@@ -1,4 +1,5 @@
 const axios = require("axios");
+const db = require("../firebase");
 
 let optionCache = {
   NIFTY:null,
@@ -30,6 +31,9 @@ async function fetchOptionChain(symbol,expiry){
     });
 
     optionCache[symbol] = res.data;
+
+    // 🔥 Firebase update
+    await db.ref(`optionChain/${symbol}`).set(res.data);
 
     console.log(symbol,"option chain updated");
 
