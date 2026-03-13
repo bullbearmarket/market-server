@@ -14,33 +14,32 @@ console.log("Starting Engines...");
 marketEngine.startMarketEngine();
 masterEngine.startMasterEngine();
 stockEngine.startStockEngine();
-
+optionEngine.startOptionEngine(); // ⭐ OPTION ENGINE START (ATM + OPTION CHAIN)
 
 // ROUTES
 
 // Health check (Render + UptimeRobot)
 app.get("/ping",(req,res)=>{
-  res.send("Server Alive");
+res.send("Server Alive");
 });
 
 // Market data
 app.get("/market",(req,res)=>{
-  res.json(marketEngine.getMarket());
+res.json(marketEngine.getMarket());
 });
 
 // Option chain
 app.get("/option-chain/:symbol",(req,res)=>{
-  const symbol = req.params.symbol;
-  res.json(optionEngine.getOptionChain(symbol));
+const symbol = req.params.symbol;
+res.json(optionEngine.getOptionChain(symbol));
 });
 
 // Stocks
 app.get("/stocks",(req,res)=>{
-  res.json(stockEngine.getStocks());
+res.json(stockEngine.getStocks());
 });
-
 
 // START SERVER
 app.listen(PORT,()=>{
-  console.log("Server running on port",PORT);
+console.log("Server running on port",PORT);
 });
