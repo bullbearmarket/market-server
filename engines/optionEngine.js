@@ -138,11 +138,32 @@ err.response?.data || err.message
 
 }
 
+
+// 🔥 OPTION ENGINE START
+function startOptionEngine(){
+
+console.log("Option Engine Started");
+
+setInterval(()=>{
+
+// weekly expiry example
+const expiry = "2026-03-30";
+
+fetchOptionChain("NIFTY",expiry);
+fetchOptionChain("BANKNIFTY",expiry);
+
+},15000); // refresh every 15 sec
+
+}
+
+
 function getOptionChain(symbol){
 return optionCache[symbol];
 }
 
+
 module.exports = {
 fetchOptionChain,
-getOptionChain
+getOptionChain,
+startOptionEngine
 };
