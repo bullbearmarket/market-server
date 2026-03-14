@@ -14,11 +14,12 @@ const PORT = process.env.PORT || 10000;
 
 console.log("Starting Engines...");
 
-// START ENGINES
+// ================= START ENGINES =================
+
 marketEngine.startMarketEngine();
 masterEngine.startMasterEngine();
 stockEngine.startStockEngine();
-optionEngine.startOptionEngine(); // ⭐ OPTION ENGINE START (ATM + OPTION CHAIN)
+optionEngine.startOptionEngine();
 
 
 
@@ -81,6 +82,58 @@ console.log("News cleanup error");
 },3600000);
 
 
+
+// ================= COMMUNITY CHAT CLEANER =================
+
+
+// Delete old community messages
+setInterval(async () => {
+
+try{
+
+console.log("Cleaning community chat...");
+
+const db = admin.database();
+
+const ref = db.ref("community/messages");
+
+const snapshot = await ref.once("value");
+
+const now = Date.now();
+
+snapshot.forEach(s => {
+
+const msg = s.val();
+
+if(!msg.timestamp) return;
+
+let limit = 4 * 60 * 60 * 1000; // 4 HOURS
+
+// OWNER MESSAGE → 48 HOURS
+if(msg.isOwner === true){
+limit = 48 * 60 * 60 * 1000;
+}
+
+if(now - msg.timestamp > limit){
+
+s.ref.remove();
+
+}
+
+});
+
+console.log("Community cleanup done");
+
+}catch(err){
+
+console.log("Community cleanup error");
+
+}
+
+},600000); // RUN EVERY 10 MINUTES
+
+
+
 // ================= ROUTES =================
 
 
@@ -109,7 +162,9 @@ res.json(stockEngine.getStocks());
 });
 
 
-// START SERVER
+
+// ================= START SERVER =================
+
 app.listen(PORT,()=>{
 console.log("Server running on port",PORT);
 });
