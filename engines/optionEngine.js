@@ -47,22 +47,29 @@ if(!strikes[strike]){
 strikes[strike] = {
 strike_price: strike,
 call_options:{
-market_data:{ask_price:0}
+market_data:{ltp:0}
 },
 put_options:{
-market_data:{ask_price:0}
+market_data:{ltp:0}
 }
 };
 }
 
+// 🔥 Premium Field (LTP first)
+const price =
+item.ltp ||
+item.last_traded_price ||
+item.bid_price ||
+item.ask_price ||
+item.last_price ||
+0;
+
 if(item.option_type==="CE"){
-strikes[strike].call_options.market_data.ask_price =
-item.last_price || 0;
+strikes[strike].call_options.market_data.ltp = price;
 }
 
 if(item.option_type==="PE"){
-strikes[strike].put_options.market_data.ask_price =
-item.last_price || 0;
+strikes[strike].put_options.market_data.ltp = price;
 }
 
 });
@@ -77,8 +84,8 @@ chain[index] = {
 
 call_options:{
 market_data:{
-ask_price:
-strikes[strike].call_options.market_data.ask_price
+ltp:
+strikes[strike].call_options.market_data.ltp
 }
 },
 
@@ -86,8 +93,8 @@ put_options:{
 strike_price:parseInt(strike),
 
 market_data:{
-ask_price:
-strikes[strike].put_options.market_data.ask_price
+ltp:
+strikes[strike].put_options.market_data.ltp
 }
 }
 
@@ -99,28 +106,23 @@ index++;
 
 optionCache[symbol] = chain;
 
-// FIREBASE UPDATE
+// Firebase update
 await db.ref(`optionChain/${symbol}/data`).set(chain);
 
-
-// ATM CALCULATION
+// ATM Calculation
 const marketSnap = await db.ref("market").once("value");
 const market = marketSnap.val();
 
 if(market){
 
 if(symbol==="NIFTY"){
-
 const atm = calculateATM(market.nifty,50);
 await db.ref("ATM/NIFTY_ATM").set(atm);
-
 }
 
 if(symbol==="BANKNIFTY"){
-
 const atm = calculateATM(market.banknifty,100);
 await db.ref("ATM/BANKNIFTY_ATM").set(atm);
-
 }
 
 }
@@ -138,29 +140,25 @@ err.response?.data || err.message
 
 }
 
-
-// 🔥 OPTION ENGINE START
+// ENGINE START
 function startOptionEngine(){
 
 console.log("Option Engine Started");
 
 setInterval(()=>{
 
-// weekly expiry example
 const expiry = "2026-03-30";
 
 fetchOptionChain("NIFTY",expiry);
 fetchOptionChain("BANKNIFTY",expiry);
 
-},15000); // refresh every 15 sec
+},25000); // 25 sec refresh
 
 }
-
 
 function getOptionChain(symbol){
 return optionCache[symbol];
 }
-
 
 module.exports = {
 fetchOptionChain,
