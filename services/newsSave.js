@@ -47,14 +47,16 @@ for(const item of newsList){
 
 const title = item.title || "";
 
+if(!title) continue;
+  
 if(existing.includes(title)) continue;
 
 const data = {
 
 title : title,
-summary : generateSummary(item.description || ""),
-source : item.source?.name || "Market",
+description : item.description || "",
 url : item.url || "",
+source : item.source?.name || "Market",
 time : Date.now()
 
 };
