@@ -1,118 +1,93 @@
 const admin = require("../firebase");
 const { fetchNewsAPI, fetchFinnhub } = require("./newsService");
 
+function generateSummary(text) {
 
-// SHORT SUMMARY
-function generateSummary(text){
+if (!text) return "";
 
-    if(!text) return "";
-
-    if(text.length < 200) return text;
-
-    return text.substring(0,200) + "...";
+return text.substring(0,200) + "...";
 
 }
 
+function detectImpact(title) {
 
-// IMPACT DETECTOR
-function detectImpact(title){
+const keywords = [
+"crash",
+"rally",
+"surge",
+"bank",
+"nifty",
+"sensex",
+"inflation",
+"rate hike"
+];
 
-    if(!title) return false;
+const lower = title.toLowerCase();
 
-    const keywords = [
-        "crash",
-        "rally",
-        "surge",
-        "bank",
-        "nifty",
-        "sensex",
-        "rate hike",
-        "inflation"
-    ];
-
-    const lower = title.toLowerCase();
-
-    return keywords.some(k => lower.includes(k));
+return keywords.some(k => lower.includes(k));
 
 }
 
-
-// SAVE NEWS
 async function saveNews(newsList){
 
-    try{
+try{
 
-        const db = admin.database();
-        const ref = db.ref("market_news");
+const db = admin.database();
+const ref = db.ref("market_news");
 
-        const snapshot = await ref.once("value");
+const snapshot = await ref.once("value");
 
-        const existing = [];
+const existing = [];
 
-        snapshot.forEach(s=>{
-            const data = s.val();
-            if(data && data.title){
-                existing.push(data.title);
-            }
-        });
+snapshot.forEach(s=>{
+existing.push(s.val().title);
+});
 
+for(const item of newsList){
 
-        for(const item of newsList){
+const title = item.title || "";
 
-            const title = item.title || "";
+if(existing.includes(title)) continue;
 
-            if(!title) continue;
+const data = {
 
-            if(existing.includes(title)) continue;
+title : title,
+description : item.description || "",
+summary : generateSummary(item.description || ""),
+url : item.url || "",
+image : item.urlToImage || item.image || "",
+source : item.source?.name || "Market",
+impact : detectImpact(title),
+time : Date.now()
 
-            const data = {
+};
 
-                title: title,
-                description: item.description || "",
-                summary: generateSummary(item.description || ""),
-                url: item.url || "",
-                image: item.urlToImage || item.image || "",
-                source: item.source?.name || "Market",
-                impact: detectImpact(title),
-                time: Date.now()
-
-            };
-
-            await ref.push(data);
-
-        }
-
-    }catch(err){
-
-        console.log("SaveNews error:", err.message);
-
-    }
+await ref.push(data);
 
 }
 
+}catch(err){
 
-// RUN NEWS API
+console.log("News Save Error",err);
+
+}
+
+}
+
 async function runNewsAPI(){
 
-    const news = await fetchNewsAPI();
+const news = await fetchNewsAPI();
 
-    if(news.length > 0){
-        await saveNews(news);
-    }
+await saveNews(news);
 
 }
 
-
-// RUN FINNHUB
 async function runFinnhub(){
 
-    const news = await fetchFinnhub();
+const news = await fetchFinnhub();
 
-    if(news.length > 0){
-        await saveNews(news);
-    }
+await saveNews(news);
 
 }
 
-
-module.exports = { runNewsAPI, runFinnhub };
+module.exports = { runNewsAPI , runFinnhub };
