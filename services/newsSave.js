@@ -1,4 +1,4 @@
-const db = require("../firebase");
+const admin = require("firebase-admin");
 const { fetchNewsAPI, fetchFinnhub } = require("./newsService");
 
 function generateSummary(text) {
