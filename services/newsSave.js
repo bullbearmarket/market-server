@@ -52,12 +52,9 @@ if(existing.includes(title)) continue;
 const data = {
 
 title : title,
-description : item.description || "",
 summary : generateSummary(item.description || ""),
-url : item.url || "",
-image : item.urlToImage || item.image || "",
 source : item.source?.name || "Market",
-impact : detectImpact(title),
+url : item.url || "",
 time : Date.now()
 
 };
