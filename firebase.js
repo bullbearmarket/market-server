@@ -2,13 +2,15 @@ const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
 
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
 
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: process.env.FIREBASE_DB
-    });
+admin.initializeApp({
+credential: admin.credential.cert(serviceAccount),
+databaseURL: process.env.FIREBASE_DB
+});
 
 }
 
-module.exports = admin;
+const db = admin.database();
+
+module.exports = db;
