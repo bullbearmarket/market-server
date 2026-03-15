@@ -33,7 +33,7 @@ async function saveNews(newsList){
 try{
 
 const db = admin.database();
-const ref = db.ref("market_news");
+const ref = db.ref("news");
 
 const snapshot = await ref.once("value");
 
