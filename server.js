@@ -20,7 +20,8 @@ marketEngine.startMarketEngine();
 masterEngine.startMasterEngine();
 stockEngine.startStockEngine();
 optionEngine.startOptionEngine();
-
+runFinnhub();
+runNewsAPI();
 
 
 // ================= NEWS SYSTEM =================
@@ -53,7 +54,7 @@ setInterval(async () => {
 try{
 
 const db = admin.database();
-const ref = db.ref("market_news");
+const ref = db.ref("news");
 
 const snapshot = await ref.once("value");
 
